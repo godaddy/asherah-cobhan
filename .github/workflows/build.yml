@@ -28,4 +28,4 @@ jobs:
       with:
         go-version: 1.17
     - name: Build MacOS
-      run: ./macos-build-all.sh
+      run: ./macos-build.sh
