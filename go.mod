@@ -1,4 +1,4 @@
-module godaddy.com/libasherah
+module github.com/godaddy/asherah-cobhan
 
 go 1.16
 
