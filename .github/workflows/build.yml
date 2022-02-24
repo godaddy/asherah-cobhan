@@ -7,16 +7,25 @@ on:
     branches: [ main ]
 
 jobs:
-
   build-linux-x64:
+    timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
-
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
         go-version: 1.17
-
     - name: Build
       run: ./linux-build-x64.sh
+  build-macos-x64:
+    timeout-minutes: 5
+    runs-on: 'macos-latest'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    - name: Build MacOS
+      run: ./macos-build-x64.sh
