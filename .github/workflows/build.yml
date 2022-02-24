@@ -18,7 +18,7 @@ jobs:
         go-version: 1.17
     - name: Build
       run: ./linux-build-x64.sh
-  build-macos-x64:
+  build-macos:
     timeout-minutes: 5
     runs-on: 'macos-latest'
     steps:
