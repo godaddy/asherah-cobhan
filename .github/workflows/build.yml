@@ -1,0 +1,51 @@
+name: Asherah-Cobhan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    timeout-minutes: 5
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    - name: Build Linux
+      run: ./ubuntu-build.sh
+    - name: Create GitHub release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: current
+      run: ./create-release.sh
+    - name: Upload Artifacts
+      run: ./upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-arm64.h output/libasherah-arm64.so
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: current
+  build-macos:
+    timeout-minutes: 5
+    runs-on: 'macos-latest'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    - name: Build MacOS
+      run: ./macos-build.sh
+    - name: Create GitHub release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: current
+      run: ./create-release.sh
+    - name: Upload Artifacts
+      run: ./upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        VERSION: current
