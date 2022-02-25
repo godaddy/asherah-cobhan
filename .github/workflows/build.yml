@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build-linux-x64:
+  build-linux:
     timeout-minutes: 5
     runs-on: ubuntu-latest
     steps:
@@ -17,7 +17,7 @@ jobs:
       with:
         go-version: 1.17
     - name: Build Linux
-      run: ./linux-build.sh
+      run: ./ubuntu-build.sh
   build-macos:
     timeout-minutes: 5
     runs-on: 'macos-latest'
