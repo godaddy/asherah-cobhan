@@ -296,35 +296,25 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		return ERR_NOT_INITIALIZED
 	}
 
-	globalDebugOutput("Decrypt()")
-
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("Decrypting with partition: " + partitionId)
 
 	encryptedData, result := cobhan.BufferToBytes(encryptedDataPtr)
 	if result != 0 {
 		return result
 	}
 
-	globalDebugOutput("encryptedData length: " + string(len(encryptedData)))
-
 	encryptedKey, result := cobhan.BufferToBytes(encryptedKeyPtr)
 	if result != 0 {
 		return result
 	}
 
-	globalDebugOutput("encryptedKey length: " + string(len(encryptedKey)))
-
 	parentKeyId, result := cobhan.BufferToString(parentKeyIdPtr)
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("parentKeyId: " + parentKeyId)
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
@@ -362,21 +352,15 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		return ERR_NOT_INITIALIZED
 	}
 
-	globalDebugOutput("Encrypt()")
-
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
 	if result != 0 {
 		return result
 	}
 
-	globalDebugOutput("Encrypting with partition: " + partitionId)
-
 	data, result := cobhan.BufferToBytes(dataPtr)
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("Encrypting with data length: " + string(len(data)))
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
@@ -396,14 +380,10 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		return result
 	}
 
-	globalDebugOutput("Encrypting with output encrypted data length: " + string(len(drr.Data)))
-
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("Encrypting with output encrypted key length: " + string(len(drr.Key.EncryptedKey)))
 
 	cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
 
@@ -411,8 +391,6 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("Encrypting with parent key ID: " + drr.Key.ParentKeyMeta.ID)
 
 	cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
 
