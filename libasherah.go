@@ -189,7 +189,7 @@ func Setup(
 		options.ReplicaReadConsistency = replicationReadConsistency
 	}
 	if sessionCacheMaxSize > 0 {
-	  options.SessionCacheMaxSize = int(sessionCacheMaxSize)
+		options.SessionCacheMaxSize = int(sessionCacheMaxSize)
 	}
 
 	globalDebugOutput(options)
