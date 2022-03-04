@@ -37,13 +37,22 @@ var globalSession *appencryption.Session
 var globalInitialized = false
 var globalDebugOutput func(string) = nil
 
-func init() {
-}
-
 //export Setup
-func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnectionStringPtr unsafe.Pointer, dynamoDbEndpointPtr unsafe.Pointer, dynamoDbRegionPtr unsafe.Pointer,
-	dynamoDbTableNamePtr unsafe.Pointer, enableRegionSuffixInt int32, serviceNamePtr unsafe.Pointer, productIdPtr unsafe.Pointer, preferredRegionPtr unsafe.Pointer, regionMapPtr unsafe.Pointer, verboseInt int32,
-	sessionCacheInt int32, debugOutputInt int32) int32 {
+func Setup(
+        kmsTypePtr unsafe.Pointer,
+        metastorePtr unsafe.Pointer,
+        rdbmsConnectionStringPtr unsafe.Pointer,
+        dynamoDbEndpointPtr unsafe.Pointer,
+        dynamoDbRegionPtr unsafe.Pointer,
+        dynamoDbTableNamePtr unsafe.Pointer,
+        enableRegionSuffixInt int32,
+        serviceNamePtr unsafe.Pointer,
+        productIdPtr unsafe.Pointer,
+        preferredRegionPtr unsafe.Pointer,
+        regionMapPtr unsafe.Pointer,
+        verboseInt int32,
+        sessionCacheInt int32,
+        debugOutputInt int32) int32 {
 
 	if globalInitialized {
 		return ERR_ALREADY_INITIALIZED
@@ -113,45 +122,45 @@ func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnecti
 		globalDebugOutput = NullDebugOutput
 	}
 
-	setupAsherah(kmsType, metastore, rdbmsConnectionString, dynamoDbEndpoint, dynamoDbRegion, dynamoDbTableName,
-		enableRegionSuffix, serviceName, productId, preferredRegion, regionMapStr, verbose, sessionCache)
-
-	return ERR_NONE
-}
-
-func setupAsherah(kmsType string, metaStore string, rdbmsConnectionString string, dynamoDbEndpoint string,
-	dynamoDbRegion string, dynamoDbTableName string, enableRegionSuffix bool, serviceName string, productId string,
-	preferredRegion string, regionMapStr string, verbose bool, sessionCache bool) {
 	options := &Options{}
-	options.KMS = kmsType             // "kms"
-	options.ServiceName = serviceName // "chatterbox"
-	options.ProductID = productId     //"facebook"
+	options.KMS = kmsType
+	options.ServiceName = serviceName
+	options.ProductID = productId
 	options.Verbose = verbose
 	options.EnableSessionCaching = sessionCache
-	options.Metastore = metaStore //"dynamodb"
-	crypto := aead.NewAES256GCM()
+	options.Metastore = metastore
 	options.ConnectionString = rdbmsConnectionString
 	options.DynamoDBEndpoint = dynamoDbEndpoint
 	options.DynamoDBRegion = dynamoDbRegion
 	options.DynamoDBTableName = dynamoDbTableName
 	options.EnableRegionSuffix = enableRegionSuffix
 	options.PreferredRegion = preferredRegion
-
 	if len(regionMapStr) > 0 {
-		regionMap := make(map[string]string)
-		pairs := strings.Split(regionMapStr, ",")
-		for _, pair := range pairs {
-			parts := strings.Split(pair, "=")
-			if len(parts) != 2 || len(parts[1]) == 0 {
-				panic("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
-			}
-			region, arn := parts[0], parts[1]
-			regionMap[region] = arn
-		}
-
-		options.RegionMap = regionMap
+		options.RegionMap = buildRegionMap(regionMapStr)
 	}
 
+        initializeSessionFactory(options)
+
+	return ERR_NONE
+}
+
+func buildRegionMap(regionMapStr string) (r RegionMap) {
+        regionMap := make(map[string]string)
+        pairs := strings.Split(regionMapStr, ",")
+        for _, pair := range pairs {
+                parts := strings.Split(pair, "=")
+                if len(parts) != 2 || len(parts[1]) == 0 {
+                        panic("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
+                }
+                region, arn := parts[0], parts[1]
+                regionMap[region] = arn
+        }
+
+        return regionMap
+}
+
+func initializeSessionFactory(options *Options) {
+	crypto := aead.NewAES256GCM()
 	globalSessionFactory = appencryption.NewSessionFactory(
 		&appencryption.Config{
 			Service: options.ServiceName,
