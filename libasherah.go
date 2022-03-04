@@ -10,6 +10,7 @@ import (
 	"github.com/godaddy/asherah/go/securememory/memguard"
 	"github.com/godaddy/cobhan-go"
 
+	"time"
 	"unsafe"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -39,20 +40,25 @@ var globalDebugOutput func(string) = nil
 
 //export Setup
 func Setup(
-        kmsTypePtr unsafe.Pointer,
-        metastorePtr unsafe.Pointer,
-        rdbmsConnectionStringPtr unsafe.Pointer,
-        dynamoDbEndpointPtr unsafe.Pointer,
-        dynamoDbRegionPtr unsafe.Pointer,
-        dynamoDbTableNamePtr unsafe.Pointer,
-        enableRegionSuffixInt int32,
-        serviceNamePtr unsafe.Pointer,
-        productIdPtr unsafe.Pointer,
-        preferredRegionPtr unsafe.Pointer,
-        regionMapPtr unsafe.Pointer,
-        verboseInt int32,
-        sessionCacheInt int32,
-        debugOutputInt int32) int32 {
+	kmsTypePtr unsafe.Pointer,
+	metastorePtr unsafe.Pointer,
+	rdbmsConnectionStringPtr unsafe.Pointer,
+	dynamoDbEndpointPtr unsafe.Pointer,
+	dynamoDbRegionPtr unsafe.Pointer,
+	dynamoDbTableNamePtr unsafe.Pointer,
+	enableRegionSuffixInt int32,
+	serviceNamePtr unsafe.Pointer,
+	productIdPtr unsafe.Pointer,
+	preferredRegionPtr unsafe.Pointer,
+	regionMapPtr unsafe.Pointer,
+	verboseInt int32,
+	enableSessionCachingInt int32,
+	debugOutputInt int32,
+	expireAfterPtr unsafe.Pointer,
+	checkIntervalPtr unsafe.Pointer,
+	sessionCacheDurationPtr unsafe.Pointer,
+	replicationReadConsistencyPtr unsafe.Pointer,
+	sessionCacheMaxSize int32) int32 {
 
 	if globalInitialized {
 		return ERR_ALREADY_INITIALIZED
@@ -110,9 +116,29 @@ func Setup(
 		return result
 	}
 
+	expireAfterStr, result := cobhan.BufferToString(expireAfterPtr)
+	if result != 0 {
+		return result
+	}
+
+	checkIntervalStr, result := cobhan.BufferToString(checkIntervalPtr)
+	if result != 0 {
+		return result
+	}
+
+	sessionCacheDurationStr, result := cobhan.BufferToString(sessionCacheDurationPtr)
+	if result != 0 {
+		return result
+	}
+
+	replicationReadConsistency, result := cobhan.BufferToString(replicationReadConsistencyPtr)
+	if result != 0 {
+		return result
+	}
+
 	verbose := verboseInt != 0
 
-	sessionCache := sessionCacheInt != 0
+	enableSessionCaching := enableSessionCachingInt != 0
 
 	debugOutput := debugOutputInt != 0
 
@@ -127,7 +153,7 @@ func Setup(
 	options.ServiceName = serviceName
 	options.ProductID = productId
 	options.Verbose = verbose
-	options.EnableSessionCaching = sessionCache
+	options.EnableSessionCaching = enableSessionCaching
 	options.Metastore = metastore
 	options.ConnectionString = rdbmsConnectionString
 	options.DynamoDBEndpoint = dynamoDbEndpoint
@@ -138,25 +164,52 @@ func Setup(
 	if len(regionMapStr) > 0 {
 		options.RegionMap = buildRegionMap(regionMapStr)
 	}
+	if len(expireAfterStr) > 0 {
+		expireAfter, err := time.ParseDuration(expireAfterStr)
+		if err != nil {
+			panic(err)
+		}
+		options.ExpireAfter = expireAfter
+	}
+	if len(checkIntervalStr) > 0 {
+		checkInterval, err := time.ParseDuration(checkIntervalStr)
+		if err != nil {
+			panic(err)
+		}
+		options.CheckInterval = checkInterval
+	}
+	if len(sessionCacheDurationStr) > 0 {
+		sessionCacheDuration, err := time.ParseDuration(sessionCacheDurationStr)
+		if err != nil {
+			panic(err)
+		}
+		options.SessionCacheDuration = sessionCacheDuration
+	}
+	if len(replicationReadConsistency) > 0 {
+		options.ReplicaReadConsistency = replicationReadConsistency
+	}
+	if sessionCacheMaxSize > 0 {
+	  options.SessionCacheMaxSize = int(sessionCacheMaxSize)
+	}
 
-        initializeSessionFactory(options)
+	initializeSessionFactory(options)
 
 	return ERR_NONE
 }
 
 func buildRegionMap(regionMapStr string) (r RegionMap) {
-        regionMap := make(map[string]string)
-        pairs := strings.Split(regionMapStr, ",")
-        for _, pair := range pairs {
-                parts := strings.Split(pair, "=")
-                if len(parts) != 2 || len(parts[1]) == 0 {
-                        panic("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
-                }
-                region, arn := parts[0], parts[1]
-                regionMap[region] = arn
-        }
+	regionMap := make(map[string]string)
+	pairs := strings.Split(regionMapStr, ",")
+	for _, pair := range pairs {
+		parts := strings.Split(pair, "=")
+		if len(parts) != 2 || len(parts[1]) == 0 {
+			panic("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
+		}
+		region, arn := parts[0], parts[1]
+		regionMap[region] = arn
+	}
 
-        return regionMap
+	return regionMap
 }
 
 func initializeSessionFactory(options *Options) {
@@ -366,7 +419,6 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 }
 
 func NewCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
-	//TODO: Add these variables to setup
 	policyOpts := []appencryption.PolicyOption{
 		appencryption.WithExpireAfterDuration(options.ExpireAfter),
 		appencryption.WithRevokeCheckInterval(options.CheckInterval),
