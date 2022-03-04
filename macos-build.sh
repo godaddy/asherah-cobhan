@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -xeu
 
 LD_RUN_PATH=\$ORIGIN CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -v -buildmode=c-shared -o output/libasherah-arm64.dylib
 mv output/libasherah-arm64.h output/libasherah-darwin-arm64.h

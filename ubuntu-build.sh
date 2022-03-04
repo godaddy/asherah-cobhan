@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -xeu
 
 sudo apt-get install gcc make gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
