@@ -36,7 +36,7 @@ var globalSessionFactory *appencryption.SessionFactory
 //var globalCtx context.Context
 var globalSession *appencryption.Session
 var globalInitialized = false
-var globalDebugOutput func(string) = nil
+var globalDebugOutput func(interface{}) = nil
 
 //export Setup
 func Setup(
@@ -192,6 +192,7 @@ func Setup(
 	  options.SessionCacheMaxSize = int(sessionCacheMaxSize)
 	}
 
+	globalDebugOutput(options)
 	initializeSessionFactory(options)
 
 	return ERR_NONE
