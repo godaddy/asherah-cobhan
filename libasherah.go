@@ -5,6 +5,7 @@ import (
 )
 import (
 	"context"
+	"encoding/json"
 	"strings"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
@@ -40,6 +41,59 @@ var globalDebugOutput func(string) = nil
 func init() {
 }
 
+type AsherahConfig struct {
+	KmsType            string `json:"kmsType"`
+	Metastore          string `json:"metaStore"`
+	ServiceName        string `json:"serviceName"`
+	ProductID          string `json:"productId"`
+	ConnectionString   string `json:"rdbmsConnectionString,omitempty"`
+	DynamoDBEndpoint   string `json:"dynamoDbEndpoint,omitempty"`
+	DynamoDBRegion     string `json:"dynamoDbRegion,omitempty"`
+	DynamoDBTableName  string `json:"dynamoDbTableName,omitempty"`
+	EnableRegionSuffix bool   `json:"enableRegionSuffix"`
+	PreferredRegion    string `json:"preferredRegion,omitempty"`
+	RegionMapStr       string `json:"regionMapStr,omitempty"`
+	Verbose            bool   `json:"verbose"`
+	SessionCache       bool   `json:"sessionCache"`
+	DebugOutput        bool   `json:"debugOutput"`
+}
+
+//export SetupJson
+func SetupJson(configJson unsafe.Pointer) int32 {
+	if globalInitialized {
+		return ERR_ALREADY_INITIALIZED
+	}
+
+	var result int32
+	config := AsherahConfig{}
+
+	configJsonStr, result := cobhan.BufferToString(configJson)
+	if result != 0 {
+		return result
+	}
+
+	err := json.Unmarshal([]byte(configJsonStr), &config)
+	if err != nil {
+		StdoutDebugOutput("Failed to deserialize: " + err.Error())
+		return -100
+	}
+
+	if config.DebugOutput {
+		StdoutDebugOutput("Enabling debug output")
+		globalDebugOutput = StdoutDebugOutput
+	} else {
+		globalDebugOutput = NullDebugOutput
+	}
+
+	globalDebugOutput("Successfully deserialized config JSON")
+
+	setupAsherah(config)
+
+	globalDebugOutput("Successfully configured Asherah")
+
+	return 0
+}
+
 //export Setup
 func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnectionStringPtr unsafe.Pointer, dynamoDbEndpointPtr unsafe.Pointer, dynamoDbRegionPtr unsafe.Pointer,
 	dynamoDbTableNamePtr unsafe.Pointer, enableRegionSuffixInt int32, serviceNamePtr unsafe.Pointer, productIdPtr unsafe.Pointer, preferredRegionPtr unsafe.Pointer, regionMapPtr unsafe.Pointer, verboseInt int32,
@@ -49,97 +103,100 @@ func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnecti
 		return ERR_ALREADY_INITIALIZED
 	}
 
-	kmsType, result := cobhan.BufferToString(kmsTypePtr)
+	var result int32
+	config := AsherahConfig{}
+
+	config.KmsType, result = cobhan.BufferToString(kmsTypePtr)
 	if result != 0 {
 		return result
 	}
 
-	metastore, result := cobhan.BufferToString(metastorePtr)
+	config.Metastore, result = cobhan.BufferToString(metastorePtr)
 	if result != 0 {
 		return result
 	}
 
-	rdbmsConnectionString, result := cobhan.BufferToString(rdbmsConnectionStringPtr)
+	config.ConnectionString, result = cobhan.BufferToString(rdbmsConnectionStringPtr)
 	if result != 0 {
 		return result
 	}
 
-	dynamoDbEndpoint, result := cobhan.BufferToString(dynamoDbEndpointPtr)
+	config.DynamoDBEndpoint, result = cobhan.BufferToString(dynamoDbEndpointPtr)
 	if result != 0 {
 		return result
 	}
 
-	dynamoDbRegion, result := cobhan.BufferToString(dynamoDbRegionPtr)
+	config.DynamoDBRegion, result = cobhan.BufferToString(dynamoDbRegionPtr)
 	if result != 0 {
 		return result
 	}
 
-	dynamoDbTableName, result := cobhan.BufferToString(dynamoDbTableNamePtr)
+	config.DynamoDBTableName, result = cobhan.BufferToString(dynamoDbTableNamePtr)
 	if result != 0 {
 		return result
 	}
 
-	enableRegionSuffix := enableRegionSuffixInt != 0
+	config.EnableRegionSuffix = enableRegionSuffixInt != 0
 
-	serviceName, result := cobhan.BufferToString(serviceNamePtr)
+	config.ServiceName, result = cobhan.BufferToString(serviceNamePtr)
 	if result != 0 {
 		return result
 	}
 
-	productId, result := cobhan.BufferToString(productIdPtr)
+	config.ProductID, result = cobhan.BufferToString(productIdPtr)
 	if result != 0 {
 		return result
 	}
 
-	preferredRegion, result := cobhan.BufferToString(preferredRegionPtr)
+	config.PreferredRegion, result = cobhan.BufferToString(preferredRegionPtr)
 	if result != 0 {
 		return result
 	}
 
-	regionMapStr, result := cobhan.BufferToString(regionMapPtr)
+	config.RegionMapStr, result = cobhan.BufferToString(regionMapPtr)
 	if result != 0 {
 		return result
 	}
 
-	verbose := verboseInt != 0
+	config.Verbose = verboseInt != 0
 
-	sessionCache := sessionCacheInt != 0
+	config.SessionCache = sessionCacheInt != 0
 
 	debugOutput := debugOutputInt != 0
 
 	if debugOutput {
+		StdoutDebugOutput("Enabling debug output")
 		globalDebugOutput = StdoutDebugOutput
 	} else {
 		globalDebugOutput = NullDebugOutput
 	}
 
-	setupAsherah(kmsType, metastore, rdbmsConnectionString, dynamoDbEndpoint, dynamoDbRegion, dynamoDbTableName,
-		enableRegionSuffix, serviceName, productId, preferredRegion, regionMapStr, verbose, sessionCache)
+	setupAsherah(config)
+
+	globalDebugOutput("Successfully configured Asherah")
 
 	return ERR_NONE
 }
 
-func setupAsherah(kmsType string, metaStore string, rdbmsConnectionString string, dynamoDbEndpoint string,
-	dynamoDbRegion string, dynamoDbTableName string, enableRegionSuffix bool, serviceName string, productId string,
-	preferredRegion string, regionMapStr string, verbose bool, sessionCache bool) {
+func setupAsherah(config AsherahConfig) {
 	options := &Options{}
-	options.KMS = kmsType             // "kms"
-	options.ServiceName = serviceName // "chatterbox"
-	options.ProductID = productId     //"facebook"
-	options.Verbose = verbose
-	options.EnableSessionCaching = sessionCache
-	options.Metastore = metaStore //"dynamodb"
+	options.KMS = config.KmsType             // "kms"
+	options.ServiceName = config.ServiceName // "chatterbox"
+	options.ProductID = config.ProductID     //"facebook"
+	options.Verbose = config.Verbose
+	options.EnableSessionCaching = config.SessionCache
+	options.Metastore = config.Metastore //"dynamodb"
 	crypto := aead.NewAES256GCM()
-	options.ConnectionString = rdbmsConnectionString
-	options.DynamoDBEndpoint = dynamoDbEndpoint
-	options.DynamoDBRegion = dynamoDbRegion
-	options.DynamoDBTableName = dynamoDbTableName
-	options.EnableRegionSuffix = enableRegionSuffix
-	options.PreferredRegion = preferredRegion
+	options.ConnectionString = config.ConnectionString
+	options.DynamoDBEndpoint = config.DynamoDBEndpoint
+	options.DynamoDBRegion = config.DynamoDBRegion
+	options.DynamoDBTableName = config.DynamoDBTableName
+	options.EnableRegionSuffix = config.EnableRegionSuffix
+	options.PreferredRegion = config.PreferredRegion
 
-	if len(regionMapStr) > 0 {
+	if len(config.RegionMapStr) > 0 {
 		regionMap := make(map[string]string)
-		pairs := strings.Split(regionMapStr, ",")
+		pairs := strings.Split(config.RegionMapStr, ",")
 		for _, pair := range pairs {
 			parts := strings.Split(pair, "=")
 			if len(parts) != 2 || len(parts[1]) == 0 {
