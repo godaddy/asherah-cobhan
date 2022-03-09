@@ -1,5 +1,5 @@
 #!/bin/bash
-set -u
+set -xeu
 echo "$GITHUB_TOKEN" >.githubtoken
 unset GITHUB_TOKEN
 gh auth login --with-token <.githubtoken

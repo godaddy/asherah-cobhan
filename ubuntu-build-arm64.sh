@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -x
+set -xeu
 
 sudo sed -i 's/azure.archive.ubuntu.com/mirror.arizona.edu/g' /etc/apt/sources.list
 
