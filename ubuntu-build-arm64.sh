@@ -2,6 +2,8 @@
 
 set -x
 
+sudo sed -i 's/azure.archive.ubuntu.com/mirror.arizona.edu/g' /etc/apt/sources.list
+
 sudo apt-get update
 
 sudo apt-get install gcc make
