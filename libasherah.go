@@ -6,6 +6,7 @@ import (
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -29,6 +30,7 @@ const ERR_ALREADY_INITIALIZED = -101
 const ERR_GET_SESSION_FAILED = -102
 const ERR_ENCRYPT_FAILED = -103
 const ERR_DECRYPT_FAILED = -104
+const ERR_BAD_CONFIG = -105
 
 func main() {
 }
@@ -59,6 +61,16 @@ type AsherahConfig struct {
 	DebugOutput            bool   `json:"debugOutput"`
 }
 
+//export Shutdown
+func Shutdown() {
+	if globalInitialized != 0 {
+		globalDebugOutput("Shutting down Asherah")
+		globalSessionFactory.Close()
+		globalSessionFactory = nil
+		atomic.StoreInt32(&globalInitialized, 0)
+	}
+}
+
 //export SetupJson
 func SetupJson(configJson unsafe.Pointer) int32 {
 	if globalInitialized != 0 {
@@ -69,19 +81,20 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	config := AsherahConfig{}
 
 	configJsonStr, result := cobhan.BufferToString(configJson)
-	if result != 0 {
+	if result != ERR_NONE {
+		StdoutDebugOutput("Failed to deserialize configuration string")
 		return result
 	}
 
 	err := json.Unmarshal([]byte(configJsonStr), &config)
 	if err != nil {
-		StdoutDebugOutput("Failed to deserialize: " + err.Error())
-		return -100
+		StdoutDebugOutput("Failed to deserialize configuration JSON: " + err.Error())
+		return cobhan.ERR_JSON_DECODE_FAILED
 	}
 
 	if config.DebugOutput {
-		StdoutDebugOutput("Enabling debug output")
 		globalDebugOutput = StdoutDebugOutput
+		globalDebugOutput("Enabled debug output")
 	} else {
 		globalDebugOutput = NullDebugOutput
 	}
@@ -89,98 +102,10 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	globalDebugOutput("Successfully deserialized config JSON")
 	globalDebugOutput(config)
 
-	setupAsherah(config)
-
-	globalDebugOutput("Successfully configured Asherah")
-
-	return 0
+	return setupAsherah(config)
 }
 
-//export Setup
-func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnectionStringPtr unsafe.Pointer, dynamoDbEndpointPtr unsafe.Pointer, dynamoDbRegionPtr unsafe.Pointer,
-	dynamoDbTableNamePtr unsafe.Pointer, enableRegionSuffixInt int32, serviceNamePtr unsafe.Pointer, productIdPtr unsafe.Pointer, preferredRegionPtr unsafe.Pointer, regionMapPtr unsafe.Pointer, verboseInt int32,
-	sessionCacheInt int32, debugOutputInt int32) int32 {
-
-	if globalInitialized != 0 {
-		return ERR_ALREADY_INITIALIZED
-	}
-
-	var result int32
-	config := AsherahConfig{}
-
-	config.KmsType, result = cobhan.BufferToString(kmsTypePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.Metastore, result = cobhan.BufferToString(metastorePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.ConnectionString, result = cobhan.BufferToString(rdbmsConnectionStringPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.DynamoDBEndpoint, result = cobhan.BufferToString(dynamoDbEndpointPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.DynamoDBRegion, result = cobhan.BufferToString(dynamoDbRegionPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.DynamoDBTableName, result = cobhan.BufferToString(dynamoDbTableNamePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.EnableRegionSuffix = enableRegionSuffixInt != 0
-
-	config.ServiceName, result = cobhan.BufferToString(serviceNamePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.ProductID, result = cobhan.BufferToString(productIdPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.PreferredRegion, result = cobhan.BufferToString(preferredRegionPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.RegionMapStr, result = cobhan.BufferToString(regionMapPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.Verbose = verboseInt != 0
-
-	config.SessionCache = sessionCacheInt != 0
-
-	debugOutput := debugOutputInt != 0
-
-	if debugOutput {
-		StdoutDebugOutput("Enabling debug output")
-		globalDebugOutput = StdoutDebugOutput
-	} else {
-		globalDebugOutput = NullDebugOutput
-	}
-
-	setupAsherah(config)
-
-	globalDebugOutput("Successfully configured Asherah")
-
-	return ERR_NONE
-}
-
-func setupAsherah(config AsherahConfig) {
+func setupAsherah(config AsherahConfig) int32 {
 	options := &Options{}
 	options.KMS = config.KmsType             // "kms"
 	options.ServiceName = config.ServiceName // "chatterbox"
@@ -227,7 +152,8 @@ func setupAsherah(config AsherahConfig) {
 		for _, pair := range pairs {
 			parts := strings.Split(pair, "=")
 			if len(parts) != 2 || len(parts[1]) == 0 {
-				panic("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
+				globalDebugOutput("Error: RegionMap must be in the form of REGION1=ARN1[,REGION2=ARN2]")
+				return ERR_BAD_CONFIG
 			}
 			region, arn := parts[0], parts[1]
 			regionMap[region] = arn
@@ -250,6 +176,8 @@ func setupAsherah(config AsherahConfig) {
 	)
 
 	atomic.StoreInt32(&globalInitialized, 1)
+	globalDebugOutput("Successfully configured Asherah")
+	return ERR_NONE
 }
 
 func NewMetastore(opts *Options) appencryption.Metastore {
@@ -321,24 +249,24 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 	globalDebugOutput("Decrypt()")
 
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	globalDebugOutput("Decrypting with partition: " + partitionId)
 
 	encryptedData, result := cobhan.BufferToBytes(encryptedDataPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	encryptedKey, result := cobhan.BufferToBytes(encryptedKeyPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	parentKeyId, result := cobhan.BufferToString(parentKeyIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
@@ -349,6 +277,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		globalDebugOutput(err.Error())
 		return ERR_GET_SESSION_FAILED
 	}
+	defer session.Close()
 
 	drr := &appencryption.DataRowRecord{
 		Data: encryptedData,
@@ -383,22 +312,23 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	globalDebugOutput("Encrypt()")
 
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	globalDebugOutput("Encrypting with partition: " + partitionId)
 
 	data, result := cobhan.BufferToBytes(dataPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		globalDebugOutput(err.Error())
+		globalDebugOutput("Encrypt: GetSession failed: " + err.Error())
 		return ERR_GET_SESSION_FAILED
 	}
+	defer session.Close()
 
 	ctx := context.Background()
 	drr, err := session.Encrypt(ctx, data)
@@ -408,27 +338,39 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	}
 
 	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
-	if result != 0 {
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("Encrypted data length: %v", len(drr.Data)))
+		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result))
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
-	if result != 0 {
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result))
 		return result
 	}
 
-	cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
+	result = cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result))
+		return result
+	}
 
 	result = cobhan.StringToBuffer(drr.Key.ParentKeyMeta.ID, outputParentKeyIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result))
 		return result
 	}
 
 	globalDebugOutput("Encrypting with parent key ID: " + drr.Key.ParentKeyMeta.ID)
 
-	cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
+	result = cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result))
+		return result
+	}
 
-	return 0
+	return ERR_NONE
 }
 
 func NewCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
