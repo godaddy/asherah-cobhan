@@ -8,7 +8,7 @@ on:
 
 jobs:
   build-linux:
-    timeout-minutes: 5
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2
@@ -16,8 +16,10 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: 1.17
-    - name: Build Linux
-      run: ./ubuntu-build.sh
+    - name: Build for Linux x64
+      run: ./ubuntu-build-x64.sh
+    - name: Build for Linux arm64
+      run: ./ubuntu-build-arm64.sh
     - name: Create GitHub release
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +32,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         VERSION: current
   build-macos:
-    timeout-minutes: 5
+    timeout-minutes: 15
     runs-on: 'macos-latest'
     steps:
     - uses: actions/checkout@v2
@@ -38,7 +40,7 @@ jobs:
       uses: actions/setup-go@v2
       with:
         go-version: 1.17
-    - name: Build MacOS
+    - name: Build for MacOS
       run: ./macos-build.sh
     - name: Create GitHub release
       env:
