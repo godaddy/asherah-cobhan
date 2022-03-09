@@ -17,7 +17,7 @@ jobs:
       with:
         go-version: 1.17
     - name: Build for Linux arm64
-      run: ./ubuntu-install-arm64.sh
+      run: ./ubuntu-build-arm64.sh
     - name: Build for Linux x64
       run: ./ubuntu-build-x64.sh
     - name: Create GitHub release
