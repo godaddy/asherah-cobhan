@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
@@ -36,7 +37,7 @@ var globalSessionFactory *appencryption.SessionFactory
 
 //var globalCtx context.Context
 var globalSession *appencryption.Session
-var globalInitialized = false
+var globalInitialized int32 = 0
 var globalDebugOutput func(string) = nil
 
 func init() {
@@ -104,7 +105,7 @@ func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnecti
 	dynamoDbTableNamePtr unsafe.Pointer, enableRegionSuffixInt int32, serviceNamePtr unsafe.Pointer, productIdPtr unsafe.Pointer, preferredRegionPtr unsafe.Pointer, regionMapPtr unsafe.Pointer, verboseInt int32,
 	sessionCacheInt int32, debugOutputInt int32) int32 {
 
-	if globalInitialized {
+	if globalInitialized != 0 {
 		return ERR_ALREADY_INITIALIZED
 	}
 
@@ -250,7 +251,8 @@ func setupAsherah(config AsherahConfig) {
 		appencryption.WithSecretFactory(new(memguard.SecretFactory)),
 		appencryption.WithMetrics(false),
 	)
-	globalInitialized = true
+
+	atomic.StoreInt32(&globalInitialized, 1)
 }
 
 func NewMetastore(opts *Options) appencryption.Metastore {
@@ -315,7 +317,7 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 //export Decrypt
 func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, encryptedKeyPtr unsafe.Pointer,
 	created int64, parentKeyIdPtr unsafe.Pointer, parentKeyCreated int64, outputDecryptedDataPtr unsafe.Pointer) int32 {
-	if !globalInitialized {
+	if globalInitialized == 0 {
 		return ERR_NOT_INITIALIZED
 	}
 
@@ -377,7 +379,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryptedDataPtr unsafe.Pointer,
 	outputEncryptedKeyPtr unsafe.Pointer, outputCreatedPtr unsafe.Pointer, outputParentKeyIdPtr unsafe.Pointer,
 	outputParentKeyCreatedPtr unsafe.Pointer) int32 {
-	if !globalInitialized {
+	if globalInitialized == 0 {
 		return ERR_NOT_INITIALIZED
 	}
 
