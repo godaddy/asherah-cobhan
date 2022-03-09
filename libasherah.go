@@ -35,10 +35,7 @@ func main() {
 
 var globalSessionFactory *appencryption.SessionFactory
 var globalInitialized int32 = 0
-var globalDebugOutput func(string) = nil
-
-func init() {
-}
+var globalDebugOutput func(interface{}) = nil
 
 type AsherahConfig struct {
 	KmsType              string `json:"kmsType"`
@@ -89,6 +86,7 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
+	globalDebugOutput(config)
 
 	setupAsherah(config)
 
