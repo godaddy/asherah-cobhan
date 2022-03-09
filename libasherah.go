@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"strings"
+	"time"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
 	"github.com/godaddy/cobhan-go"
@@ -42,20 +43,24 @@ func init() {
 }
 
 type AsherahConfig struct {
-	KmsType            string `json:"kmsType"`
-	Metastore          string `json:"metaStore"`
-	ServiceName        string `json:"serviceName"`
-	ProductID          string `json:"productId"`
-	ConnectionString   string `json:"rdbmsConnectionString,omitempty"`
-	DynamoDBEndpoint   string `json:"dynamoDbEndpoint,omitempty"`
-	DynamoDBRegion     string `json:"dynamoDbRegion,omitempty"`
-	DynamoDBTableName  string `json:"dynamoDbTableName,omitempty"`
-	EnableRegionSuffix bool   `json:"enableRegionSuffix"`
-	PreferredRegion    string `json:"preferredRegion,omitempty"`
-	RegionMapStr       string `json:"regionMapStr,omitempty"`
-	Verbose            bool   `json:"verbose"`
-	SessionCache       bool   `json:"sessionCache"`
-	DebugOutput        bool   `json:"debugOutput"`
+	KmsType              string `json:"kmsType"`
+	Metastore            string `json:"metastore"`
+	ServiceName          string `json:"serviceName"`
+	ProductID            string `json:"productId"`
+	ConnectionString     string `json:"rdbmsConnectionString,omitempty"`
+	DynamoDBEndpoint     string `json:"dynamoDbEndpoint,omitempty"`
+	DynamoDBRegion       string `json:"dynamoDbRegion,omitempty"`
+	DynamoDBTableName    string `json:"dynamoDbTableName,omitempty"`
+	EnableRegionSuffix   bool   `json:"enableRegionSuffix"`
+	PreferredRegion      string `json:"preferredRegion,omitempty"`
+	RegionMapStr         string `json:"regionMapStr,omitempty"`
+	SessionCacheMaxSize  int    `json:"sessionCacheMaxSize,omitempty"`
+	SessionCacheDuration int    `json:"sessionCacheDuration,omitempty"`
+	ExpireAfter          int    `json:"expireAfter,omitempty"`
+	CheckInterval        int    `json:"checkInterval,omitempty"`
+	Verbose              bool   `json:"verbose"`
+	SessionCache         bool   `json:"sessionCache"`
+	DebugOutput          bool   `json:"debugOutput"`
 }
 
 //export SetupJson
@@ -194,6 +199,30 @@ func setupAsherah(config AsherahConfig) {
 	options.EnableRegionSuffix = config.EnableRegionSuffix
 	options.PreferredRegion = config.PreferredRegion
 
+	if config.SessionCacheMaxSize == 0 {
+		options.SessionCacheMaxSize = appencryption.DefaultSessionCacheMaxSize
+	} else {
+		options.SessionCacheMaxSize = config.SessionCacheMaxSize
+	}
+
+	if config.SessionCacheDuration == 0 {
+		options.SessionCacheDuration = appencryption.DefaultSessionCacheDuration
+	} else {
+		options.SessionCacheDuration = time.Second * time.Duration(config.SessionCacheDuration)
+	}
+
+	if config.ExpireAfter == 0 {
+		options.ExpireAfter = appencryption.DefaultExpireAfter
+	} else {
+		options.ExpireAfter = time.Second * time.Duration(config.ExpireAfter)
+	}
+
+	if config.CheckInterval == 0 {
+		options.CheckInterval = appencryption.DefaultRevokedCheckInterval
+	} else {
+		options.CheckInterval = time.Second * time.Duration(config.CheckInterval)
+	}
+
 	if len(config.RegionMapStr) > 0 {
 		regionMap := make(map[string]string)
 		pairs := strings.Split(config.RegionMapStr, ",")
@@ -304,14 +333,10 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		return result
 	}
 
-	globalDebugOutput("encryptedData length: " + string(len(encryptedData)))
-
 	encryptedKey, result := cobhan.BufferToBytes(encryptedKeyPtr)
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("encryptedKey length: " + string(len(encryptedKey)))
 
 	parentKeyId, result := cobhan.BufferToString(parentKeyIdPtr)
 	if result != 0 {
@@ -390,14 +415,10 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		return result
 	}
 
-	globalDebugOutput("Encrypting with output encrypted data length: " + string(len(drr.Data)))
-
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("Encrypting with output encrypted key length: " + string(len(drr.Key.EncryptedKey)))
 
 	cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
 
@@ -414,7 +435,6 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 }
 
 func NewCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
-	//TODO: Add these variables to setup
 	policyOpts := []appencryption.PolicyOption{
 		appencryption.WithExpireAfterDuration(options.ExpireAfter),
 		appencryption.WithRevokeCheckInterval(options.CheckInterval),
