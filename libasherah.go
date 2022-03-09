@@ -34,9 +34,6 @@ func main() {
 }
 
 var globalSessionFactory *appencryption.SessionFactory
-
-//var globalCtx context.Context
-var globalSession *appencryption.Session
 var globalInitialized int32 = 0
 var globalDebugOutput func(string) = nil
 
@@ -66,7 +63,7 @@ type AsherahConfig struct {
 
 //export SetupJson
 func SetupJson(configJson unsafe.Pointer) int32 {
-	if globalInitialized {
+	if globalInitialized != 0 {
 		return ERR_ALREADY_INITIALIZED
 	}
 
@@ -396,8 +393,6 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	if result != 0 {
 		return result
 	}
-
-	globalDebugOutput("Encrypting with data length: " + string(len(data)))
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
