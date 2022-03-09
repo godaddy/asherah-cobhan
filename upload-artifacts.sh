@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -xeu
+
 if [ -n "${GITHUB_TOKEN}" ]; then
     echo "${GITHUB_TOKEN}" >.githubtoken
     unset GITHUB_TOKEN

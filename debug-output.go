@@ -2,9 +2,9 @@ package main
 
 import "fmt"
 
-func StdoutDebugOutput(output string) {
-	fmt.Println(output)
+func StdoutDebugOutput(output interface{}) {
+	fmt.Printf("%#v\n", output)
 }
 
-func NullDebugOutput(output string) {
+func NullDebugOutput(output interface{}) {
 }

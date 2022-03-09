@@ -35,30 +35,28 @@ func main() {
 
 var globalSessionFactory *appencryption.SessionFactory
 var globalInitialized int32 = 0
-var globalDebugOutput func(string) = nil
-
-func init() {
-}
+var globalDebugOutput func(interface{}) = nil
 
 type AsherahConfig struct {
-	KmsType              string `json:"kmsType"`
-	Metastore            string `json:"metastore"`
-	ServiceName          string `json:"serviceName"`
-	ProductID            string `json:"productId"`
-	ConnectionString     string `json:"rdbmsConnectionString,omitempty"`
-	DynamoDBEndpoint     string `json:"dynamoDbEndpoint,omitempty"`
-	DynamoDBRegion       string `json:"dynamoDbRegion,omitempty"`
-	DynamoDBTableName    string `json:"dynamoDbTableName,omitempty"`
-	EnableRegionSuffix   bool   `json:"enableRegionSuffix"`
-	PreferredRegion      string `json:"preferredRegion,omitempty"`
-	RegionMapStr         string `json:"regionMapStr,omitempty"`
-	SessionCacheMaxSize  int    `json:"sessionCacheMaxSize,omitempty"`
-	SessionCacheDuration int    `json:"sessionCacheDuration,omitempty"`
-	ExpireAfter          int    `json:"expireAfter,omitempty"`
-	CheckInterval        int    `json:"checkInterval,omitempty"`
-	Verbose              bool   `json:"verbose"`
-	SessionCache         bool   `json:"sessionCache"`
-	DebugOutput          bool   `json:"debugOutput"`
+	KmsType                string `json:"kmsType"`
+	Metastore              string `json:"metastore"`
+	ServiceName            string `json:"serviceName"`
+	ProductID              string `json:"productId"`
+	ConnectionString       string `json:"rdbmsConnectionString,omitempty"`
+	ReplicaReadConsistency string `json:"replicaReadConsistency,omitempty"`
+	DynamoDBEndpoint       string `json:"dynamoDbEndpoint,omitempty"`
+	DynamoDBRegion         string `json:"dynamoDbRegion,omitempty"`
+	DynamoDBTableName      string `json:"dynamoDbTableName,omitempty"`
+	EnableRegionSuffix     bool   `json:"enableRegionSuffix"`
+	PreferredRegion        string `json:"preferredRegion,omitempty"`
+	RegionMapStr           string `json:"regionMapStr,omitempty"`
+	SessionCacheMaxSize    int    `json:"sessionCacheMaxSize,omitempty"`
+	SessionCacheDuration   int    `json:"sessionCacheDuration,omitempty"`
+	ExpireAfter            int    `json:"expireAfter,omitempty"`
+	CheckInterval          int    `json:"checkInterval,omitempty"`
+	Verbose                bool   `json:"verbose"`
+	SessionCache           bool   `json:"sessionCache"`
+	DebugOutput            bool   `json:"debugOutput"`
 }
 
 //export SetupJson
@@ -89,6 +87,7 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
+	globalDebugOutput(config)
 
 	setupAsherah(config)
 
@@ -191,6 +190,7 @@ func setupAsherah(config AsherahConfig) {
 	options.Metastore = config.Metastore //"dynamodb"
 	crypto := aead.NewAES256GCM()
 	options.ConnectionString = config.ConnectionString
+	options.ReplicaReadConsistency = config.ReplicaReadConsistency
 	options.DynamoDBEndpoint = config.DynamoDBEndpoint
 	options.DynamoDBRegion = config.DynamoDBRegion
 	options.DynamoDBTableName = config.DynamoDBTableName
