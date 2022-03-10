@@ -663,6 +663,7 @@ func TestDecryptBadData(t *testing.T) {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
+	// Intentionally corrupt the encrypted data
 	encryptedData[cobhan.BUFFER_HEADER_SIZE+4] = 1
 	encryptedData[cobhan.BUFFER_HEADER_SIZE+5] = 2
 	encryptedData[cobhan.BUFFER_HEADER_SIZE+6] = 3

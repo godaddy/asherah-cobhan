@@ -7,7 +7,7 @@ func StdoutDebugOutput(output interface{}) {
 }
 
 func StdoutDebugOutputf(format string, args ...interface{}) {
-	fmt.Printf(format, args...)
+	fmt.Printf(format+"\n", args...)
 }
 
 func NullDebugOutput(output interface{}) {
