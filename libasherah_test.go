@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"encoding/json"
 	"testing"
 
 	"github.com/godaddy/cobhan-go"
 )
 
-func validSetupForTesting(t *testing.T) {
+func setupAsherahForTesting(t *testing.T) {
 	config := &Options{}
 
 	config.KMS = "static"
@@ -23,30 +23,44 @@ func validSetupForTesting(t *testing.T) {
 	config.RegionMap = RegionMap{}
 	config.RegionMap.UnmarshalFlag("region1=arn1,region2=arn2")
 
-	buf := cobhan.AllocateBuffer(4096)
-	result := cobhan.JsonToBufferSafe(config, &buf)
-	if result != ERR_NONE {
-		t.Errorf("BytesToBufferSafe returned %v", result)
-	}
+	buf := testAllocateJsonBuffer(t, config)
 
-	SetupJson(cobhan.Ptr(&buf))
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
 }
 
 func testAllocateStringBuffer(t *testing.T, str string) []byte {
 	buf, result := cobhan.AllocateStringBuffer(str)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("AllocateStringBuffer returned %v", result))
-		t.FailNow()
+		t.Errorf("AllocateStringBuffer returned %v", result)
 	}
 	return buf
 }
 
+func testAllocateBytesBuffer(t *testing.T, bytes []byte) []byte {
+	buf, result := cobhan.AllocateBytesBuffer(bytes)
+	if result != ERR_NONE {
+		t.Errorf("AllocateStringBuffer returned %v", result)
+	}
+	return buf
+}
+
+func testAllocateJsonBuffer(t *testing.T, obj interface{}) []byte {
+	bytes, err := json.Marshal(obj)
+	if err != nil {
+		t.Errorf("json.Marshal returned %v", err)
+	}
+	return testAllocateBytesBuffer(t, bytes)
+}
+
 func TestSetupJson(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	Shutdown()
 }
 
-func TestSetupJson2(t *testing.T) {
+func TestSetupJsonAlternateConfiguration(t *testing.T) {
 	config := &Options{}
 
 	config.KMS = "static"
@@ -56,13 +70,12 @@ func TestSetupJson2(t *testing.T) {
 	config.EnableSessionCaching = true
 	config.Verbose = false
 
-	buf := cobhan.AllocateBuffer(4096)
-	result := cobhan.JsonToBufferSafe(config, &buf)
-	if result != ERR_NONE {
-		t.Errorf("BytesToBufferSafe returned %v", result)
-	}
+	buf := testAllocateJsonBuffer(t, config)
 
-	SetupJson(cobhan.Ptr(&buf))
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
 	Shutdown()
 }
 
@@ -76,27 +89,28 @@ func TestSetupJsonTwice(t *testing.T) {
 	config.EnableSessionCaching = true
 	config.Verbose = true
 
-	buf := cobhan.AllocateBuffer(4096)
-	result := cobhan.JsonToBufferSafe(config, &buf)
-	if result != ERR_NONE {
-		t.Errorf("BytesToBufferSafe returned %v", result)
-	}
+	buf := testAllocateJsonBuffer(t, config)
 
-	SetupJson(cobhan.Ptr(&buf))
-	SetupJson(cobhan.Ptr(&buf))
-	Shutdown()
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
+	defer Shutdown()
+	result = SetupJson(cobhan.Ptr(&buf))
+	if result != ERR_ALREADY_INITIALIZED {
+		t.Errorf("Expected SetupJson to return ERR_ALREADY_INITIALIZED got %v", result)
+	}
 }
 
 func TestSetupInvalidJson(t *testing.T) {
 	str := "}InvalidJson{"
 
-	buf := cobhan.AllocateBuffer(1024)
-	result := cobhan.StringToBufferSafe(str, &buf)
-	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("StringToBufferSafe returned %v", result))
-	}
+	buf := testAllocateStringBuffer(t, str)
 
-	SetupJson(cobhan.Ptr(&buf))
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_JSON_DECODE_FAILED {
+		t.Errorf("Expected SetupJson to return ERR_JSON_DECODE_FAILED got %v", result)
+	}
 	Shutdown()
 }
 
@@ -106,7 +120,7 @@ func TestSetupNullJson(t *testing.T) {
 }
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -127,19 +141,19 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(cobhan.Ptr(&partitionId),
@@ -151,15 +165,15 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 		cobhan.Ptr(&decryptedData),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Decrypt returned %v", result))
+		t.Errorf("Decrypt returned %v", result)
 	}
 
 	output, result := cobhan.BufferToStringSafe(&decryptedData)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToStringSafe returned %v", result))
+		t.Errorf("BufferToStringSafe returned %v", result)
 	}
 	if output != input {
-		t.Error(fmt.Sprintf("Expected %v Actual %v", input, output))
+		t.Errorf("Expected %v Actual %v", input, output)
 	}
 }
 
@@ -208,7 +222,7 @@ func TestDecryptWithoutInit(t *testing.T) {
 }
 
 func TestEncryptNullPartitionId(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	data := testAllocateStringBuffer(t, "InputData")
@@ -233,7 +247,7 @@ func TestEncryptNullPartitionId(t *testing.T) {
 }
 
 func TestEncryptNullData(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -257,7 +271,7 @@ func TestEncryptNullData(t *testing.T) {
 }
 
 func TestEncryptNullEncryptedData(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -281,7 +295,7 @@ func TestEncryptNullEncryptedData(t *testing.T) {
 }
 
 func TestEncryptNullEncryptedKey(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -305,7 +319,7 @@ func TestEncryptNullEncryptedKey(t *testing.T) {
 }
 
 func TestEncryptNullCreatedBuf(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -329,7 +343,7 @@ func TestEncryptNullCreatedBuf(t *testing.T) {
 }
 
 func TestEncryptNullParentKeyId(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -353,7 +367,7 @@ func TestEncryptNullParentKeyId(t *testing.T) {
 }
 
 func TestEncryptNullParentKeyCreated(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -377,7 +391,7 @@ func TestEncryptNullParentKeyCreated(t *testing.T) {
 }
 
 func TestDecryptNullPartitionId(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -398,19 +412,19 @@ func TestDecryptNullPartitionId(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(nil,
@@ -427,7 +441,7 @@ func TestDecryptNullPartitionId(t *testing.T) {
 }
 
 func TestDecryptNullEncryptedData(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -448,19 +462,19 @@ func TestDecryptNullEncryptedData(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(cobhan.Ptr(&partitionId),
@@ -477,7 +491,7 @@ func TestDecryptNullEncryptedData(t *testing.T) {
 }
 
 func TestDecryptNullEncryptedKey(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -498,19 +512,19 @@ func TestDecryptNullEncryptedKey(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(cobhan.Ptr(&partitionId),
@@ -527,7 +541,7 @@ func TestDecryptNullEncryptedKey(t *testing.T) {
 }
 
 func TestDecryptNullParentKeyId(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -548,19 +562,19 @@ func TestDecryptNullParentKeyId(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(cobhan.Ptr(&partitionId),
@@ -577,7 +591,7 @@ func TestDecryptNullParentKeyId(t *testing.T) {
 }
 
 func TestDecryptNullDecryptedData(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -598,17 +612,17 @@ func TestDecryptNullDecryptedData(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(cobhan.Ptr(&partitionId),
@@ -625,7 +639,7 @@ func TestDecryptNullDecryptedData(t *testing.T) {
 }
 
 func TestDecryptBadData(t *testing.T) {
-	validSetupForTesting(t)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -646,7 +660,7 @@ func TestDecryptBadData(t *testing.T) {
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("Encrypt returned %v", result))
+		t.Errorf("Encrypt returned %v", result)
 	}
 
 	encryptedData[cobhan.BUFFER_HEADER_SIZE+4] = 1
@@ -658,12 +672,12 @@ func TestDecryptBadData(t *testing.T) {
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BufferToInt64Safe returned %v", result))
+		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	result = Decrypt(cobhan.Ptr(&partitionId),
