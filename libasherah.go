@@ -304,6 +304,100 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	return ERR_NONE
 }
 
+//export EncryptJson
+func EncryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputPtr unsafe.Pointer) int32 {
+	if globalInitialized == 0 {
+		return ERR_NOT_INITIALIZED
+	}
+
+	var result int32
+	globalDebugOutput("EncryptJson()")
+
+	partitionId, result := cobhan.BufferToString(partitionIdPtr)
+	if result != ERR_NONE {
+		return result
+	}
+
+	globalDebugOutput("Encrypting with partition: " + partitionId)
+
+	input, result := cobhan.BufferToBytes(inputPtr)
+	if result != ERR_NONE {
+		return result
+	}
+
+	session, err := globalSessionFactory.GetSession(partitionId)
+	if err != nil {
+		globalDebugOutput("EncryptJson: GetSession failed: " + err.Error())
+		return ERR_GET_SESSION_FAILED
+	}
+	defer session.Close()
+
+	ctx := context.Background()
+	drr, err := session.Encrypt(ctx, input)
+	if err != nil {
+		globalDebugOutput("EncryptJson failed: " + err.Error())
+		return ERR_ENCRYPT_FAILED
+	}
+
+	result = cobhan.JsonToBuffer(drr, outputPtr)
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("EncryptJson: JsonToBuffer returned %v for outputPtr", result))
+		return result
+	}
+
+	return ERR_NONE
+}
+
+//export DecryptJson
+func DecryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputPtr unsafe.Pointer) int32 {
+	if globalInitialized == 0 {
+		return ERR_NOT_INITIALIZED
+	}
+
+	globalDebugOutput("DecryptJson()")
+
+	partitionId, result := cobhan.BufferToString(partitionIdPtr)
+	if result != ERR_NONE {
+		return result
+	}
+
+	globalDebugOutput("Decrypting with partition: " + partitionId)
+
+	jsonData, result := cobhan.BufferToString(inputPtr)
+	if result != ERR_NONE {
+		return result
+	}
+
+	var drr appencryption.DataRowRecord
+	err := json.Unmarshal([]byte(jsonData), &drr)
+	if err != nil {
+		StdoutDebugOutput("Failed to deserialize input JSON: " + err.Error())
+		return cobhan.ERR_JSON_DECODE_FAILED
+	}
+
+	session, err := globalSessionFactory.GetSession(partitionId)
+	if err != nil {
+		globalDebugOutput(err.Error())
+		return ERR_GET_SESSION_FAILED
+	}
+	defer session.Close()
+
+	ctx := context.Background()
+	output, err := session.Decrypt(ctx, drr)
+	if err != nil {
+		globalDebugOutput("DecryptJson failed: " + err.Error())
+		return ERR_DECRYPT_FAILED
+	}
+
+	result = cobhan.BytesToBuffer(output, outputPtr)
+	if result != ERR_NONE {
+		globalDebugOutput(fmt.Sprintf("DecryptJson: BytesToBuffer returned %v for outputPtr", result))
+		return result
+	}
+
+	return ERR_NONE
+}
+
 func NewCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
 	policyOpts := []appencryption.PolicyOption{
 		appencryption.WithExpireAfterDuration(options.ExpireAfter),
