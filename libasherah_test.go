@@ -8,24 +8,6 @@ import (
 	"github.com/godaddy/cobhan-go"
 )
 
-func AllocateStringBuffer(str string) ([]byte, int32) {
-	buf := cobhan.AllocateBuffer(len(str))
-	result := cobhan.StringToBufferSafe(str, &buf)
-	if result != ERR_NONE {
-		return nil, result
-	}
-	return buf, ERR_NONE
-}
-
-func AllocateBytesBuffer(bytes []byte) ([]byte, int32) {
-	buf := cobhan.AllocateBuffer(len(bytes))
-	result := cobhan.BytesToBufferSafe(bytes, &buf)
-	if result != ERR_NONE {
-		return nil, result
-	}
-	return buf, ERR_NONE
-}
-
 func validSetupForTesting(t *testing.T) {
 	config := AsherahConfig{}
 
@@ -57,7 +39,7 @@ func validSetupForTesting(t *testing.T) {
 }
 
 func testAllocateStringBuffer(t *testing.T, str string) []byte {
-	buf, result := AllocateStringBuffer(str)
+	buf, result := cobhan.AllocateStringBuffer(str)
 	if result != ERR_NONE {
 		t.Error(fmt.Sprintf("AllocateStringBuffer returned %v", result))
 		t.FailNow()
