@@ -5,11 +5,8 @@ import (
 )
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
 	"github.com/godaddy/cobhan-go"
@@ -39,28 +36,6 @@ var globalSessionFactory *appencryption.SessionFactory
 var globalInitialized int32 = 0
 var globalDebugOutput func(interface{}) = nil
 
-type AsherahConfig struct {
-	KmsType                string `json:"kmsType"`
-	Metastore              string `json:"metastore"`
-	ServiceName            string `json:"serviceName"`
-	ProductID              string `json:"productId"`
-	ConnectionString       string `json:"rdbmsConnectionString,omitempty"`
-	ReplicaReadConsistency string `json:"replicaReadConsistency,omitempty"`
-	DynamoDBEndpoint       string `json:"dynamoDbEndpoint,omitempty"`
-	DynamoDBRegion         string `json:"dynamoDbRegion,omitempty"`
-	DynamoDBTableName      string `json:"dynamoDbTableName,omitempty"`
-	EnableRegionSuffix     bool   `json:"enableRegionSuffix"`
-	PreferredRegion        string `json:"preferredRegion,omitempty"`
-	RegionMapStr           string `json:"regionMapStr,omitempty"`
-	SessionCacheMaxSize    int    `json:"sessionCacheMaxSize,omitempty"`
-	SessionCacheDuration   int    `json:"sessionCacheDuration,omitempty"`
-	ExpireAfter            int    `json:"expireAfter,omitempty"`
-	CheckInterval          int    `json:"checkInterval,omitempty"`
-	Verbose                bool   `json:"verbose"`
-	SessionCache           bool   `json:"sessionCache"`
-	DebugOutput            bool   `json:"debugOutput"`
-}
-
 //export Shutdown
 func Shutdown() {
 	if globalInitialized != 0 {
@@ -77,22 +52,14 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 		return ERR_ALREADY_INITIALIZED
 	}
 
-	var result int32
-	config := AsherahConfig{}
-
-	configJsonStr, result := cobhan.BufferToString(configJson)
+	options := &Options{}
+	result := cobhan.BufferToJsonStruct(configJson, options)
 	if result != ERR_NONE {
 		StdoutDebugOutput("Failed to deserialize configuration string")
 		return result
 	}
 
-	err := json.Unmarshal([]byte(configJsonStr), &config)
-	if err != nil {
-		StdoutDebugOutput("Failed to deserialize configuration JSON: " + err.Error())
-		return cobhan.ERR_JSON_DECODE_FAILED
-	}
-
-	if config.DebugOutput {
+	if options.Verbose {
 		globalDebugOutput = StdoutDebugOutput
 		globalDebugOutput("Enabled debug output")
 	} else {
@@ -100,66 +67,28 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
-	globalDebugOutput(config)
+	globalDebugOutput(options)
 
-	return setupAsherah(config)
+	return setupAsherah(options)
 }
 
-func setupAsherah(config AsherahConfig) int32 {
-	options := &Options{}
-	options.KMS = config.KmsType             // "kms"
-	options.ServiceName = config.ServiceName // "chatterbox"
-	options.ProductID = config.ProductID     //"facebook"
-	options.Verbose = config.Verbose
-	options.EnableSessionCaching = config.SessionCache
-	options.Metastore = config.Metastore //"dynamodb"
+func setupAsherah(options *Options) int32 {
 	crypto := aead.NewAES256GCM()
-	options.ConnectionString = config.ConnectionString
-	options.ReplicaReadConsistency = config.ReplicaReadConsistency
-	options.DynamoDBEndpoint = config.DynamoDBEndpoint
-	options.DynamoDBRegion = config.DynamoDBRegion
-	options.DynamoDBTableName = config.DynamoDBTableName
-	options.EnableRegionSuffix = config.EnableRegionSuffix
-	options.PreferredRegion = config.PreferredRegion
 
-	if config.SessionCacheMaxSize == 0 {
+	if options.SessionCacheMaxSize == 0 {
 		options.SessionCacheMaxSize = appencryption.DefaultSessionCacheMaxSize
-	} else {
-		options.SessionCacheMaxSize = config.SessionCacheMaxSize
 	}
 
-	if config.SessionCacheDuration == 0 {
+	if options.SessionCacheDuration == 0 {
 		options.SessionCacheDuration = appencryption.DefaultSessionCacheDuration
-	} else {
-		options.SessionCacheDuration = time.Second * time.Duration(config.SessionCacheDuration)
 	}
 
-	if config.ExpireAfter == 0 {
+	if options.ExpireAfter == 0 {
 		options.ExpireAfter = appencryption.DefaultExpireAfter
-	} else {
-		options.ExpireAfter = time.Second * time.Duration(config.ExpireAfter)
 	}
 
-	if config.CheckInterval == 0 {
+	if options.CheckInterval == 0 {
 		options.CheckInterval = appencryption.DefaultRevokedCheckInterval
-	} else {
-		options.CheckInterval = time.Second * time.Duration(config.CheckInterval)
-	}
-
-	if len(config.RegionMapStr) > 0 {
-		regionMap := make(map[string]string)
-		pairs := strings.Split(config.RegionMapStr, ",")
-		for _, pair := range pairs {
-			parts := strings.Split(pair, "=")
-			if len(parts) != 2 || len(parts[1]) == 0 {
-				globalDebugOutput("Error: RegionMap must be in the form of REGION1=ARN1[,REGION2=ARN2]")
-				return ERR_BAD_CONFIG
-			}
-			region, arn := parts[0], parts[1]
-			regionMap[region] = arn
-		}
-
-		options.RegionMap = regionMap
 	}
 
 	globalSessionFactory = appencryption.NewSessionFactory(

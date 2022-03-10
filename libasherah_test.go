@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -9,30 +8,25 @@ import (
 )
 
 func validSetupForTesting(t *testing.T) {
-	config := AsherahConfig{}
+	config := &Options{}
 
-	config.KmsType = "static"
+	config.KMS = "static"
 	config.ServiceName = "TestService"
 	config.ProductID = "TestProduct"
 	config.Metastore = "memory"
-	config.SessionCache = true
+	config.EnableSessionCaching = true
 	config.SessionCacheDuration = 1000
 	config.SessionCacheMaxSize = 2
 	config.ExpireAfter = 1000
 	config.CheckInterval = 1000
-	config.DebugOutput = true
-	config.RegionMapStr = "region1=arn1,region2=arn2"
+	config.Verbose = true
+	config.RegionMap = RegionMap{}
+	config.RegionMap.UnmarshalFlag("region1=arn1,region2=arn2")
 
-	jsonBytes, err := json.Marshal(config)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf := cobhan.AllocateBuffer(1024)
-
-	result := cobhan.BytesToBufferSafe(jsonBytes, &buf)
+	buf := cobhan.AllocateBuffer(4096)
+	result := cobhan.JsonToBufferSafe(config, &buf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BytesToBufferSafe returned %v", result))
+		t.Errorf("BytesToBufferSafe returned %v", result)
 	}
 
 	SetupJson(cobhan.Ptr(&buf))
@@ -53,25 +47,19 @@ func TestSetupJson(t *testing.T) {
 }
 
 func TestSetupJson2(t *testing.T) {
-	config := AsherahConfig{}
+	config := &Options{}
 
-	config.KmsType = "static"
+	config.KMS = "static"
 	config.ServiceName = "TestService"
 	config.ProductID = "TestProduct"
 	config.Metastore = "memory"
-	config.SessionCache = true
-	config.DebugOutput = false
+	config.EnableSessionCaching = true
+	config.Verbose = false
 
-	jsonBytes, err := json.Marshal(config)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf := cobhan.AllocateBuffer(1024)
-
-	result := cobhan.BytesToBufferSafe(jsonBytes, &buf)
+	buf := cobhan.AllocateBuffer(4096)
+	result := cobhan.JsonToBufferSafe(config, &buf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BytesToBufferSafe returned %v", result))
+		t.Errorf("BytesToBufferSafe returned %v", result)
 	}
 
 	SetupJson(cobhan.Ptr(&buf))
@@ -79,62 +67,24 @@ func TestSetupJson2(t *testing.T) {
 }
 
 func TestSetupJsonTwice(t *testing.T) {
-	config := AsherahConfig{}
+	config := &Options{}
 
-	config.KmsType = "static"
+	config.KMS = "static"
 	config.ServiceName = "TestService"
 	config.ProductID = "TestProduct"
 	config.Metastore = "memory"
-	config.SessionCache = true
-	config.DebugOutput = true
+	config.EnableSessionCaching = true
+	config.Verbose = true
 
-	jsonBytes, err := json.Marshal(config)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf := cobhan.AllocateBuffer(1024)
-
-	result := cobhan.BytesToBufferSafe(jsonBytes, &buf)
+	buf := cobhan.AllocateBuffer(4096)
+	result := cobhan.JsonToBufferSafe(config, &buf)
 	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BytesToBufferSafe returned %v", result))
+		t.Errorf("BytesToBufferSafe returned %v", result)
 	}
 
 	SetupJson(cobhan.Ptr(&buf))
 	SetupJson(cobhan.Ptr(&buf))
 	Shutdown()
-}
-
-func TestBadRegionMap(t *testing.T) {
-	config := AsherahConfig{}
-
-	config.KmsType = "static"
-	config.ServiceName = "TestService"
-	config.ProductID = "TestProduct"
-	config.Metastore = "memory"
-	config.SessionCache = true
-	config.ExpireAfter = 1000
-	config.CheckInterval = 1000
-	config.DebugOutput = false
-	config.RegionMapStr = "XXXXXXXXXXXXXX"
-
-	jsonBytes, err := json.Marshal(config)
-	if err != nil {
-		t.Error(err)
-	}
-
-	buf := cobhan.AllocateBuffer(1024)
-
-	result := cobhan.BytesToBufferSafe(jsonBytes, &buf)
-	if result != ERR_NONE {
-		t.Error(fmt.Sprintf("BytesToBufferSafe returned %v", result))
-	}
-
-	result = SetupJson(cobhan.Ptr(&buf))
-	defer Shutdown()
-	if result != ERR_BAD_CONFIG {
-		t.Error("SetupJson didn't return ERR_BAD_CONFIG")
-	}
 }
 
 func TestSetupInvalidJson(t *testing.T) {
