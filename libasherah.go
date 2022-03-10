@@ -5,7 +5,6 @@ import (
 )
 import (
 	"context"
-	"fmt"
 	"sync/atomic"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
@@ -35,6 +34,7 @@ func main() {
 var globalSessionFactory *appencryption.SessionFactory
 var globalInitialized int32 = 0
 var globalDebugOutput func(interface{}) = nil
+var globalDebugOutputf func(format string, args ...interface{}) = nil
 
 //export Shutdown
 func Shutdown() {
@@ -61,9 +61,11 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 
 	if options.Verbose {
 		globalDebugOutput = StdoutDebugOutput
+		globalDebugOutputf = StdoutDebugOutputf
 		globalDebugOutput("Enabled debug output")
 	} else {
 		globalDebugOutput = NullDebugOutput
+		globalDebugOutputf = StdoutDebugOutputf
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
@@ -182,7 +184,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		return result
 	}
 
-	globalDebugOutput("Decrypting with partition: " + partitionId)
+	globalDebugOutputf("Decrypting with partition: %v", partitionId)
 
 	encryptedData, result := cobhan.BufferToBytes(encryptedDataPtr)
 	if result != ERR_NONE {
@@ -199,7 +201,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		return result
 	}
 
-	globalDebugOutput("parentKeyId: " + parentKeyId)
+	globalDebugOutputf("parentKeyId: %v", parentKeyId)
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
@@ -223,7 +225,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 	ctx := context.Background()
 	data, err := session.Decrypt(ctx, *drr)
 	if err != nil {
-		globalDebugOutput("Decrypt failed: " + err.Error())
+		globalDebugOutputf("Decrypt failed: %v", err)
 		return ERR_DECRYPT_FAILED
 	}
 
@@ -245,7 +247,7 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		return result
 	}
 
-	globalDebugOutput("Encrypting with partition: " + partitionId)
+	globalDebugOutputf("Encrypting with partition: %v", partitionId)
 
 	data, result := cobhan.BufferToBytes(dataPtr)
 	if result != ERR_NONE {
@@ -254,7 +256,7 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		globalDebugOutput("Encrypt: GetSession failed: " + err.Error())
+		globalDebugOutputf("Encrypt: GetSession failed: %v", err)
 		return ERR_GET_SESSION_FAILED
 	}
 	defer session.Close()
@@ -268,26 +270,26 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 
 	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("Encrypted data length: %v", len(drr.Data)))
-		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result))
+		globalDebugOutputf("Encrypted data length: %v", len(drr.Data))
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result))
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result)
 		return result
 	}
 
 	result = cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result))
+		globalDebugOutputf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result)
 		return result
 	}
 
 	result = cobhan.StringToBuffer(drr.Key.ParentKeyMeta.ID, outputParentKeyIdPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result))
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result)
 		return result
 	}
 
@@ -295,7 +297,7 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 
 	result = cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result))
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result)
 		return result
 	}
 
