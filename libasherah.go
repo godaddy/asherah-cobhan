@@ -5,10 +5,7 @@ import (
 )
 import (
 	"context"
-	"encoding/json"
-	"strings"
 	"sync/atomic"
-	"time"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
 	"github.com/godaddy/cobhan-go"
@@ -29,6 +26,7 @@ const ERR_ALREADY_INITIALIZED = -101
 const ERR_GET_SESSION_FAILED = -102
 const ERR_ENCRYPT_FAILED = -103
 const ERR_DECRYPT_FAILED = -104
+const ERR_BAD_CONFIG = -105
 
 func main() {
 }
@@ -36,27 +34,16 @@ func main() {
 var globalSessionFactory *appencryption.SessionFactory
 var globalInitialized int32 = 0
 var globalDebugOutput func(interface{}) = nil
+var globalDebugOutputf func(format string, args ...interface{}) = nil
 
-type AsherahConfig struct {
-	KmsType                string `json:"kmsType"`
-	Metastore              string `json:"metastore"`
-	ServiceName            string `json:"serviceName"`
-	ProductID              string `json:"productId"`
-	ConnectionString       string `json:"rdbmsConnectionString,omitempty"`
-	ReplicaReadConsistency string `json:"replicaReadConsistency,omitempty"`
-	DynamoDBEndpoint       string `json:"dynamoDbEndpoint,omitempty"`
-	DynamoDBRegion         string `json:"dynamoDbRegion,omitempty"`
-	DynamoDBTableName      string `json:"dynamoDbTableName,omitempty"`
-	EnableRegionSuffix     bool   `json:"enableRegionSuffix"`
-	PreferredRegion        string `json:"preferredRegion,omitempty"`
-	RegionMapStr           string `json:"regionMapStr,omitempty"`
-	SessionCacheMaxSize    int    `json:"sessionCacheMaxSize,omitempty"`
-	SessionCacheDuration   int    `json:"sessionCacheDuration,omitempty"`
-	ExpireAfter            int    `json:"expireAfter,omitempty"`
-	CheckInterval          int    `json:"checkInterval,omitempty"`
-	Verbose                bool   `json:"verbose"`
-	SessionCache           bool   `json:"sessionCache"`
-	DebugOutput            bool   `json:"debugOutput"`
+//export Shutdown
+func Shutdown() {
+	if globalInitialized != 0 {
+		globalDebugOutput("Shutting down Asherah")
+		globalSessionFactory.Close()
+		globalSessionFactory = nil
+		atomic.StoreInt32(&globalInitialized, 0)
+	}
 }
 
 //export SetupJson
@@ -65,175 +52,45 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 		return ERR_ALREADY_INITIALIZED
 	}
 
-	var result int32
-	config := AsherahConfig{}
-
-	configJsonStr, result := cobhan.BufferToString(configJson)
-	if result != 0 {
+	options := &Options{}
+	result := cobhan.BufferToJsonStruct(configJson, options)
+	if result != ERR_NONE {
+		StdoutDebugOutput("Failed to deserialize configuration string")
 		return result
 	}
 
-	err := json.Unmarshal([]byte(configJsonStr), &config)
-	if err != nil {
-		StdoutDebugOutput("Failed to deserialize: " + err.Error())
-		return -100
-	}
-
-	if config.DebugOutput {
-		StdoutDebugOutput("Enabling debug output")
+	if options.Verbose {
 		globalDebugOutput = StdoutDebugOutput
+		globalDebugOutputf = StdoutDebugOutputf
+		globalDebugOutput("Enabled debug output")
 	} else {
 		globalDebugOutput = NullDebugOutput
+		globalDebugOutputf = StdoutDebugOutputf
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
-	globalDebugOutput(config)
+	globalDebugOutput(options)
 
-	setupAsherah(config)
-
-	globalDebugOutput("Successfully configured Asherah")
-
-	return 0
+	return setupAsherah(options)
 }
 
-//export Setup
-func Setup(kmsTypePtr unsafe.Pointer, metastorePtr unsafe.Pointer, rdbmsConnectionStringPtr unsafe.Pointer, dynamoDbEndpointPtr unsafe.Pointer, dynamoDbRegionPtr unsafe.Pointer,
-	dynamoDbTableNamePtr unsafe.Pointer, enableRegionSuffixInt int32, serviceNamePtr unsafe.Pointer, productIdPtr unsafe.Pointer, preferredRegionPtr unsafe.Pointer, regionMapPtr unsafe.Pointer, verboseInt int32,
-	sessionCacheInt int32, debugOutputInt int32) int32 {
-
-	if globalInitialized != 0 {
-		return ERR_ALREADY_INITIALIZED
-	}
-
-	var result int32
-	config := AsherahConfig{}
-
-	config.KmsType, result = cobhan.BufferToString(kmsTypePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.Metastore, result = cobhan.BufferToString(metastorePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.ConnectionString, result = cobhan.BufferToString(rdbmsConnectionStringPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.DynamoDBEndpoint, result = cobhan.BufferToString(dynamoDbEndpointPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.DynamoDBRegion, result = cobhan.BufferToString(dynamoDbRegionPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.DynamoDBTableName, result = cobhan.BufferToString(dynamoDbTableNamePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.EnableRegionSuffix = enableRegionSuffixInt != 0
-
-	config.ServiceName, result = cobhan.BufferToString(serviceNamePtr)
-	if result != 0 {
-		return result
-	}
-
-	config.ProductID, result = cobhan.BufferToString(productIdPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.PreferredRegion, result = cobhan.BufferToString(preferredRegionPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.RegionMapStr, result = cobhan.BufferToString(regionMapPtr)
-	if result != 0 {
-		return result
-	}
-
-	config.Verbose = verboseInt != 0
-
-	config.SessionCache = sessionCacheInt != 0
-
-	debugOutput := debugOutputInt != 0
-
-	if debugOutput {
-		StdoutDebugOutput("Enabling debug output")
-		globalDebugOutput = StdoutDebugOutput
-	} else {
-		globalDebugOutput = NullDebugOutput
-	}
-
-	setupAsherah(config)
-
-	globalDebugOutput("Successfully configured Asherah")
-
-	return ERR_NONE
-}
-
-func setupAsherah(config AsherahConfig) {
-	options := &Options{}
-	options.KMS = config.KmsType             // "kms"
-	options.ServiceName = config.ServiceName // "chatterbox"
-	options.ProductID = config.ProductID     //"facebook"
-	options.Verbose = config.Verbose
-	options.EnableSessionCaching = config.SessionCache
-	options.Metastore = config.Metastore //"dynamodb"
+func setupAsherah(options *Options) int32 {
 	crypto := aead.NewAES256GCM()
-	options.ConnectionString = config.ConnectionString
-	options.ReplicaReadConsistency = config.ReplicaReadConsistency
-	options.DynamoDBEndpoint = config.DynamoDBEndpoint
-	options.DynamoDBRegion = config.DynamoDBRegion
-	options.DynamoDBTableName = config.DynamoDBTableName
-	options.EnableRegionSuffix = config.EnableRegionSuffix
-	options.PreferredRegion = config.PreferredRegion
 
-	if config.SessionCacheMaxSize == 0 {
+	if options.SessionCacheMaxSize == 0 {
 		options.SessionCacheMaxSize = appencryption.DefaultSessionCacheMaxSize
-	} else {
-		options.SessionCacheMaxSize = config.SessionCacheMaxSize
 	}
 
-	if config.SessionCacheDuration == 0 {
+	if options.SessionCacheDuration == 0 {
 		options.SessionCacheDuration = appencryption.DefaultSessionCacheDuration
-	} else {
-		options.SessionCacheDuration = time.Second * time.Duration(config.SessionCacheDuration)
 	}
 
-	if config.ExpireAfter == 0 {
+	if options.ExpireAfter == 0 {
 		options.ExpireAfter = appencryption.DefaultExpireAfter
-	} else {
-		options.ExpireAfter = time.Second * time.Duration(config.ExpireAfter)
 	}
 
-	if config.CheckInterval == 0 {
+	if options.CheckInterval == 0 {
 		options.CheckInterval = appencryption.DefaultRevokedCheckInterval
-	} else {
-		options.CheckInterval = time.Second * time.Duration(config.CheckInterval)
-	}
-
-	if len(config.RegionMapStr) > 0 {
-		regionMap := make(map[string]string)
-		pairs := strings.Split(config.RegionMapStr, ",")
-		for _, pair := range pairs {
-			parts := strings.Split(pair, "=")
-			if len(parts) != 2 || len(parts[1]) == 0 {
-				panic("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
-			}
-			region, arn := parts[0], parts[1]
-			regionMap[region] = arn
-		}
-
-		options.RegionMap = regionMap
 	}
 
 	globalSessionFactory = appencryption.NewSessionFactory(
@@ -250,6 +107,8 @@ func setupAsherah(config AsherahConfig) {
 	)
 
 	atomic.StoreInt32(&globalInitialized, 1)
+	globalDebugOutput("Successfully configured Asherah")
+	return ERR_NONE
 }
 
 func NewMetastore(opts *Options) appencryption.Metastore {
@@ -321,34 +180,35 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 	globalDebugOutput("Decrypt()")
 
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
-	globalDebugOutput("Decrypting with partition: " + partitionId)
+	globalDebugOutputf("Decrypting with partition: %v", partitionId)
 
 	encryptedData, result := cobhan.BufferToBytes(encryptedDataPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	encryptedKey, result := cobhan.BufferToBytes(encryptedKeyPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	parentKeyId, result := cobhan.BufferToString(parentKeyIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
-	globalDebugOutput("parentKeyId: " + parentKeyId)
+	globalDebugOutputf("parentKeyId: %v", parentKeyId)
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
 		globalDebugOutput(err.Error())
 		return ERR_GET_SESSION_FAILED
 	}
+	defer session.Close()
 
 	drr := &appencryption.DataRowRecord{
 		Data: encryptedData,
@@ -365,7 +225,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 	ctx := context.Background()
 	data, err := session.Decrypt(ctx, *drr)
 	if err != nil {
-		globalDebugOutput("Decrypt failed: " + err.Error())
+		globalDebugOutputf("Decrypt failed: %v", err)
 		return ERR_DECRYPT_FAILED
 	}
 
@@ -383,22 +243,23 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	globalDebugOutput("Encrypt()")
 
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
-	globalDebugOutput("Encrypting with partition: " + partitionId)
+	globalDebugOutputf("Encrypting with partition: %v", partitionId)
 
 	data, result := cobhan.BufferToBytes(dataPtr)
-	if result != 0 {
+	if result != ERR_NONE {
 		return result
 	}
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		globalDebugOutput(err.Error())
+		globalDebugOutputf("Encrypt: GetSession failed: %v", err)
 		return ERR_GET_SESSION_FAILED
 	}
+	defer session.Close()
 
 	ctx := context.Background()
 	drr, err := session.Encrypt(ctx, data)
@@ -408,27 +269,39 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	}
 
 	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
-	if result != 0 {
+	if result != ERR_NONE {
+		globalDebugOutputf("Encrypted data length: %v", len(drr.Data))
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
-	if result != 0 {
+	if result != ERR_NONE {
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result)
 		return result
 	}
 
-	cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
+	result = cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
+	if result != ERR_NONE {
+		globalDebugOutputf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result)
+		return result
+	}
 
 	result = cobhan.StringToBuffer(drr.Key.ParentKeyMeta.ID, outputParentKeyIdPtr)
-	if result != 0 {
+	if result != ERR_NONE {
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result)
 		return result
 	}
 
 	globalDebugOutput("Encrypting with parent key ID: " + drr.Key.ParentKeyMeta.ID)
 
-	cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
+	result = cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
+	if result != ERR_NONE {
+		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result)
+		return result
+	}
 
-	return 0
+	return ERR_NONE
 }
 
 func NewCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
