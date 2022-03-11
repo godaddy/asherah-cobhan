@@ -173,19 +173,6 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 //export Decrypt
 func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, encryptedKeyPtr unsafe.Pointer,
 	created int64, parentKeyIdPtr unsafe.Pointer, parentKeyCreated int64, outputDecryptedDataPtr unsafe.Pointer) int32 {
-	if globalInitialized == 0 {
-		return ERR_NOT_INITIALIZED
-	}
-
-	globalDebugOutput("Decrypt()")
-
-	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != ERR_NONE {
-		return result
-	}
-
-	globalDebugOutputf("Decrypting with partition: %v", partitionId)
-
 	encryptedData, result := cobhan.BufferToBytes(encryptedDataPtr)
 	if result != ERR_NONE {
 		return result
@@ -203,14 +190,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 
 	globalDebugOutputf("parentKeyId: %v", parentKeyId)
 
-	session, err := globalSessionFactory.GetSession(partitionId)
-	if err != nil {
-		globalDebugOutput(err.Error())
-		return ERR_GET_SESSION_FAILED
-	}
-	defer session.Close()
-
-	drr := &appencryption.DataRowRecord{
+	drr := appencryption.DataRowRecord{
 		Data: encryptedData,
 		Key: &appencryption.EnvelopeKeyRecord{
 			EncryptedKey: encryptedKey,
@@ -222,11 +202,9 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		},
 	}
 
-	ctx := context.Background()
-	data, err := session.Decrypt(ctx, *drr)
-	if err != nil {
-		globalDebugOutputf("Decrypt failed: %v", err)
-		return ERR_DECRYPT_FAILED
+        data, result := decryptData(partitionIdPtr, &drr)
+	if result != ERR_NONE {
+		return result
 	}
 
 	return cobhan.BytesToBuffer(data, outputDecryptedDataPtr)
@@ -295,43 +273,21 @@ func EncryptJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPtr 
 }
 
 //export DecryptJson
-func DecryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputPtr unsafe.Pointer) int32 {
-	if globalInitialized == 0 {
-		return ERR_NOT_INITIALIZED
-	}
-
-	globalDebugOutput("DecryptJson()")
-
-	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != ERR_NONE {
-		return result
-	}
-
-	globalDebugOutput("Decrypting with partition: " + partitionId)
-
+func DecryptJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, dataPtr unsafe.Pointer) int32 {
 	var drr appencryption.DataRowRecord
-	result = cobhan.BufferToJsonStruct(inputPtr, &drr)
+        result := cobhan.BufferToJsonStruct(jsonPtr, &drr)
 	if result != ERR_NONE {
 		return result
 	}
 
-	session, err := globalSessionFactory.GetSession(partitionId)
-	if err != nil {
-		globalDebugOutput(err.Error())
-		return ERR_GET_SESSION_FAILED
-	}
-	defer session.Close()
-
-	ctx := context.Background()
-	output, err := session.Decrypt(ctx, drr)
-	if err != nil {
-		globalDebugOutput("DecryptJson failed: " + err.Error())
-		return ERR_DECRYPT_FAILED
-	}
-
-	result = cobhan.BytesToBuffer(output, outputPtr)
+        data, result := decryptData(partitionIdPtr, &drr)
 	if result != ERR_NONE {
-		globalDebugOutputf("DecryptJson: BytesToBuffer returned %v for outputPtr", result)
+		return result
+	}
+
+	result = cobhan.BytesToBuffer(data, dataPtr)
+	if result != ERR_NONE {
+		globalDebugOutputf("DecryptJson: BytesToBuffer returned %v for dataPtr", result)
 		return result
 	}
 
@@ -391,3 +347,33 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
         return drr, ERR_NONE
 }
 
+func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord) ([]byte, int32) {
+	if globalInitialized == 0 {
+		return nil, ERR_NOT_INITIALIZED
+	}
+
+	globalDebugOutput("Decrypt()")
+
+	partitionId, result := cobhan.BufferToString(partitionIdPtr)
+	if result != ERR_NONE {
+		return nil, result
+	}
+
+	globalDebugOutputf("Decrypting with partition: %v", partitionId)
+
+	session, err := globalSessionFactory.GetSession(partitionId)
+	if err != nil {
+		globalDebugOutput(err.Error())
+		return nil, ERR_GET_SESSION_FAILED
+	}
+	defer session.Close()
+
+	ctx := context.Background()
+	data, err := session.Decrypt(ctx, *drr)
+	if err != nil {
+		globalDebugOutputf("Decrypt failed: %v", err)
+		return nil, ERR_DECRYPT_FAILED
+	}
+
+        return data, ERR_NONE
+}
