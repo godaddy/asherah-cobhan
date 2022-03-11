@@ -236,39 +236,13 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryptedDataPtr unsafe.Pointer,
 	outputEncryptedKeyPtr unsafe.Pointer, outputCreatedPtr unsafe.Pointer, outputParentKeyIdPtr unsafe.Pointer,
 	outputParentKeyCreatedPtr unsafe.Pointer) int32 {
-	if globalInitialized == 0 {
-		return ERR_NOT_INITIALIZED
-	}
 
-	globalDebugOutput("Encrypt()")
-
-	partitionId, result := cobhan.BufferToString(partitionIdPtr)
+	drr, result := encryptData(partitionIdPtr, dataPtr)
 	if result != ERR_NONE {
 		return result
 	}
 
-	globalDebugOutputf("Encrypting with partition: %v", partitionId)
-
-	data, result := cobhan.BufferToBytes(dataPtr)
-	if result != ERR_NONE {
-		return result
-	}
-
-	session, err := globalSessionFactory.GetSession(partitionId)
-	if err != nil {
-		globalDebugOutputf("Encrypt: GetSession failed: %v", err)
-		return ERR_GET_SESSION_FAILED
-	}
-	defer session.Close()
-
-	ctx := context.Background()
-	drr, err := session.Encrypt(ctx, data)
-	if err != nil {
-		globalDebugOutput("Encrypt failed: " + err.Error())
-		return ERR_ENCRYPT_FAILED
-	}
-
-	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
+        result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
 	if result != ERR_NONE {
 		globalDebugOutputf("Encrypted data length: %v", len(drr.Data))
 		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
@@ -305,43 +279,15 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 }
 
 //export EncryptJson
-func EncryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputPtr unsafe.Pointer) int32 {
-	if globalInitialized == 0 {
-		return ERR_NOT_INITIALIZED
-	}
-
-	var result int32
-	globalDebugOutput("EncryptJson()")
-
-	partitionId, result := cobhan.BufferToString(partitionIdPtr)
+func EncryptJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPtr unsafe.Pointer) int32 {
+	drr, result := encryptData(partitionIdPtr, dataPtr)
 	if result != ERR_NONE {
 		return result
 	}
 
-	globalDebugOutput("Encrypting with partition: " + partitionId)
-
-	input, result := cobhan.BufferToBytes(inputPtr)
+	result = cobhan.JsonToBuffer(drr, jsonPtr)
 	if result != ERR_NONE {
-		return result
-	}
-
-	session, err := globalSessionFactory.GetSession(partitionId)
-	if err != nil {
-		globalDebugOutput("EncryptJson: GetSession failed: " + err.Error())
-		return ERR_GET_SESSION_FAILED
-	}
-	defer session.Close()
-
-	ctx := context.Background()
-	drr, err := session.Encrypt(ctx, input)
-	if err != nil {
-		globalDebugOutput("EncryptJson failed: " + err.Error())
-		return ERR_ENCRYPT_FAILED
-	}
-
-	result = cobhan.JsonToBuffer(drr, outputPtr)
-	if result != ERR_NONE {
-		globalDebugOutputf("EncryptJson: JsonToBuffer returned %v for outputPtr", result)
+		globalDebugOutputf("EncryptJson: JsonToBuffer returned %v for jsonPtr", result)
 		return result
 	}
 
@@ -408,3 +354,40 @@ func NewCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
 
 	return appencryption.NewCryptoPolicy(policyOpts...)
 }
+
+func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appencryption.DataRowRecord, int32) {
+	if globalInitialized == 0 {
+		return nil, ERR_NOT_INITIALIZED
+	}
+
+	globalDebugOutput("Encrypt()")
+
+	partitionId, result := cobhan.BufferToString(partitionIdPtr)
+	if result != ERR_NONE {
+		return nil, result
+	}
+
+	globalDebugOutputf("Encrypting with partition: %v", partitionId)
+
+	data, result := cobhan.BufferToBytes(dataPtr)
+	if result != ERR_NONE {
+		return nil, result
+	}
+
+	session, err := globalSessionFactory.GetSession(partitionId)
+	if err != nil {
+		globalDebugOutputf("Encrypt: GetSession failed: %v", err)
+		return nil, ERR_GET_SESSION_FAILED
+	}
+	defer session.Close()
+
+	ctx := context.Background()
+	drr, err := session.Encrypt(ctx, data)
+	if err != nil {
+		globalDebugOutput("Encrypt failed: " + err.Error())
+		return nil, ERR_ENCRYPT_FAILED
+	}
+
+        return drr, ERR_NONE
+}
+
