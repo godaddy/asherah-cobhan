@@ -202,7 +202,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		},
 	}
 
-        data, result := decryptData(partitionIdPtr, &drr)
+	data, result := decryptData(partitionIdPtr, &drr)
 	if result != ERR_NONE {
 		return result
 	}
@@ -220,7 +220,7 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		return result
 	}
 
-        result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
+	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
 	if result != ERR_NONE {
 		globalDebugOutputf("Encrypted data length: %v", len(drr.Data))
 		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
@@ -275,12 +275,12 @@ func EncryptJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPtr 
 //export DecryptJson
 func DecryptJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, dataPtr unsafe.Pointer) int32 {
 	var drr appencryption.DataRowRecord
-        result := cobhan.BufferToJsonStruct(jsonPtr, &drr)
+	result := cobhan.BufferToJsonStruct(jsonPtr, &drr)
 	if result != ERR_NONE {
 		return result
 	}
 
-        data, result := decryptData(partitionIdPtr, &drr)
+	data, result := decryptData(partitionIdPtr, &drr)
 	if result != ERR_NONE {
 		return result
 	}
@@ -344,7 +344,7 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 		return nil, ERR_ENCRYPT_FAILED
 	}
 
-        return drr, ERR_NONE
+	return drr, ERR_NONE
 }
 
 func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord) ([]byte, int32) {
@@ -375,5 +375,5 @@ func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord
 		return nil, ERR_DECRYPT_FAILED
 	}
 
-        return data, ERR_NONE
+	return data, ERR_NONE
 }
