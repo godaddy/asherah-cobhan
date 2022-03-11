@@ -65,7 +65,7 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 		globalDebugOutput("Enabled debug output")
 	} else {
 		globalDebugOutput = NullDebugOutput
-		globalDebugOutputf = StdoutDebugOutputf
+		globalDebugOutputf = NullDebugOutputf
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
