@@ -341,7 +341,7 @@ func EncryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputP
 
 	result = cobhan.JsonToBuffer(drr, outputPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("EncryptJson: JsonToBuffer returned %v for outputPtr", result))
+		globalDebugOutputf("EncryptJson: JsonToBuffer returned %v for outputPtr", result)
 		return result
 	}
 
@@ -363,16 +363,10 @@ func DecryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputP
 
 	globalDebugOutput("Decrypting with partition: " + partitionId)
 
-	jsonData, result := cobhan.BufferToString(inputPtr)
+	var drr appencryption.DataRowRecord
+	result = cobhan.BufferToJsonStruct(inputPtr, &drr)
 	if result != ERR_NONE {
 		return result
-	}
-
-	var drr appencryption.DataRowRecord
-	err := json.Unmarshal([]byte(jsonData), &drr)
-	if err != nil {
-		StdoutDebugOutput("Failed to deserialize input JSON: " + err.Error())
-		return cobhan.ERR_JSON_DECODE_FAILED
 	}
 
 	session, err := globalSessionFactory.GetSession(partitionId)
@@ -391,7 +385,7 @@ func DecryptJson(partitionIdPtr unsafe.Pointer, inputPtr unsafe.Pointer, outputP
 
 	result = cobhan.BytesToBuffer(output, outputPtr)
 	if result != ERR_NONE {
-		globalDebugOutput(fmt.Sprintf("DecryptJson: BytesToBuffer returned %v for outputPtr", result))
+		globalDebugOutputf("DecryptJson: BytesToBuffer returned %v for outputPtr", result)
 		return result
 	}
 
