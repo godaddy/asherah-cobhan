@@ -694,7 +694,7 @@ func TestDecryptBadData(t *testing.T) {
 	}
 }
 
-func TestEncryptDecryptJsonCycle(t *testing.T) {
+func TestEncryptToJsonAndDecryptFromJsonCycle(t *testing.T) {
 	setupAsherahForTesting(t)
 
 	inputData := "InputData"
@@ -702,9 +702,9 @@ func TestEncryptDecryptJsonCycle(t *testing.T) {
 	inputBuf := testAllocateStringBuffer(t, inputData)
 	encryptedDataBuf := cobhan.AllocateBuffer(256)
 
-	result := EncryptJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&inputBuf), cobhan.Ptr(&encryptedDataBuf))
+	result := EncryptToJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&inputBuf), cobhan.Ptr(&encryptedDataBuf))
 	if result != ERR_NONE {
-		t.Errorf("EncryptJson returned %v", result)
+		t.Errorf("EncryptToJson returned %v", result)
 	}
 
 	encrypted_data, result := cobhan.BufferToString(cobhan.Ptr(&encryptedDataBuf))
@@ -715,9 +715,9 @@ func TestEncryptDecryptJsonCycle(t *testing.T) {
 	encryptedDataInputBuf := testAllocateStringBuffer(t, encrypted_data)
 
 	decryptedDataBuf := cobhan.AllocateBuffer(256)
-	result = DecryptJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&encryptedDataInputBuf), cobhan.Ptr(&decryptedDataBuf))
+	result = DecryptFromJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&encryptedDataInputBuf), cobhan.Ptr(&decryptedDataBuf))
 	if result != ERR_NONE {
-		t.Errorf("DecryptJson returned %v", result)
+		t.Errorf("DecryptFromJson returned %v", result)
 	}
 
 	decryptedData, result := cobhan.BufferToString(cobhan.Ptr(&decryptedDataBuf))
