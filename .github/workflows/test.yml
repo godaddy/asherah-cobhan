@@ -1,0 +1,34 @@
+name: Test Asherah-Cobhan
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-linux:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    container:
+      image: golang:bullseye
+      options: --ulimit core=-1 --ulimit memlock=-1:-1
+    steps:
+    - uses: actions/checkout@v2
+    - name: Configure packages
+      run: ./ubuntu-configure.sh
+    - name: Build for Linux x64
+      run: ./ubuntu-build-x64.sh
+    - name: Build for Linux arm64
+      run: ./ubuntu-build-arm64.sh
+  build-macos:
+    timeout-minutes: 15
+    runs-on: 'macos-latest'
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.17
+    - name: Build for MacOS
+      run: ./macos-build.sh
