@@ -4,7 +4,7 @@ set -xeu
 
 VERSION=${GITHUB_REF#refs/*/}
 
-if [[ ${VERSION} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+if [[ ${VERSION#v} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   if [ -n "${GITHUB_TOKEN}" ]; then
     echo "${GITHUB_TOKEN}" >.githubtoken
     unset GITHUB_TOKEN
