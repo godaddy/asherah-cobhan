@@ -21,7 +21,8 @@ func setupAsherahForTesting(t *testing.T) {
 	config.CheckInterval = 1000
 	config.Verbose = true
 	config.RegionMap = RegionMap{}
-	config.RegionMap.UnmarshalFlag("region1=arn1,region2=arn2")
+	config.RegionMap["region1"] = "arn1"
+	config.RegionMap["region2"] = "arn2"
 
 	buf := testAllocateJsonBuffer(t, config)
 
