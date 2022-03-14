@@ -243,6 +243,8 @@ github.com/godaddy/cobhan-go v0.0.0-20220310000144-ea8a2cfe0f1b h1:YizoBRi9eRefB
 github.com/godaddy/cobhan-go v0.0.0-20220310000144-ea8a2cfe0f1b/go.mod h1:aPw0Llv8HqK9ycHxNRiPJjLj1D/MjjZVuv1LXK2sxEA=
 github.com/godaddy/cobhan-go v0.0.0-20220310172343-dfbc34682505 h1:iG3leOrw25JUJQIJxzdeLoToXsaNO7wn33wyxHsM2nw=
 github.com/godaddy/cobhan-go v0.0.0-20220310172343-dfbc34682505/go.mod h1:aPw0Llv8HqK9ycHxNRiPJjLj1D/MjjZVuv1LXK2sxEA=
+github.com/godaddy/cobhan-go v0.1.0 h1:3g8ol3aUX8P2EY/2KC1p2EVJ/rX8MTSfK25o8QOUSyQ=
+github.com/godaddy/cobhan-go v0.1.0/go.mod h1:aPw0Llv8HqK9ycHxNRiPJjLj1D/MjjZVuv1LXK2sxEA=
 github.com/godbus/dbus v0.0.0-20151105175453-c7fdd8b5cd55/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20180201030542-885f9cc04c9c/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e/go.mod h1:bBOAhwG1umN6/6ZUMtDFBMQR8jRg9O75tm9K00oMsK4=
