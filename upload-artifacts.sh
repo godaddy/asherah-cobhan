@@ -2,7 +2,7 @@
 
 set -xeu
 
-VERSION=${GITHUB_REF#refs/*/v}
+VERSION=${GITHUB_REF#refs/*/}
 
 if [[ ${VERSION} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
   if [ -n "${GITHUB_TOKEN}" ]; then
