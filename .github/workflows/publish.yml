@@ -19,11 +19,6 @@ jobs:
       run: ./ubuntu-build-x64.sh
     - name: Build for Linux arm64
       run: ./ubuntu-build-arm64.sh
-    - name: Create GitHub release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        VERSION: current
-      run: ./create-release.sh
     - name: Upload Artifacts
       run: ./upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-arm64.h output/libasherah-arm64.so
       env:
@@ -40,7 +35,6 @@ jobs:
     - name: Build for MacOS
       run: ./macos-build.sh
     - name: Upload Artifacts
-      if: github.ref == 'refs/heads/main'
       run: ./upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
