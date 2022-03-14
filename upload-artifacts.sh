@@ -2,10 +2,18 @@
 
 set -xeu
 
-if [ -n "${GITHUB_TOKEN}" ]; then
+VERSION=${GITHUB_REF#refs/*/}
+
+if [[ ${VERSION} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  if [ -n "${GITHUB_TOKEN}" ]; then
     echo "${GITHUB_TOKEN}" >.githubtoken
     unset GITHUB_TOKEN
     gh auth login --with-token <.githubtoken
     rm .githubtoken
+  fi
+  gh release upload "${VERSION}" "$@"  --clobber
+  exit 0
 fi
-gh release upload "${VERSION}" "$@"  --clobber
+
+echo "Bad version: ${1}"
+exit 1
