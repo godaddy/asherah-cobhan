@@ -1,8 +1,6 @@
 package main
 
 import (
-	"errors"
-	"strings"
 	"time"
 )
 
@@ -29,18 +27,3 @@ type Options struct {
 }
 
 type RegionMap map[string]string
-
-func (r RegionMap) UnmarshalFlag(value string) error {
-	pairs := strings.Split(value, ",")
-	for _, pair := range pairs {
-		parts := strings.Split(pair, "=")
-		if len(parts) != 2 || len(parts[1]) == 0 {
-			return errors.New("argument must be in the form of REGION1=ARN1[,REGION2=ARN2]")
-		}
-
-		region, arn := parts[0], parts[1]
-		r[region] = arn
-	}
-
-	return nil
-}
