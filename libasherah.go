@@ -52,10 +52,16 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 		return ERR_ALREADY_INITIALIZED
 	}
 
+	cobhan.AllowTempFileBuffers(false)
 	options := &Options{}
 	result := cobhan.BufferToJsonStruct(configJson, options)
 	if result != ERR_NONE {
-		StdoutDebugOutput("Failed to deserialize configuration string")
+		StdoutDebugOutputf("Failed to deserialize configuration string %v", result)
+		configString, stringResult := cobhan.BufferToString(configJson)
+		if stringResult != ERR_NONE {
+			return result
+		}
+		StdoutDebugOutputf("Could not deserialize: %v", configString)
 		return result
 	}
 
