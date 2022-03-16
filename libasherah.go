@@ -1,4 +1,4 @@
-package libasherah
+package main
 
 import (
 	"C"

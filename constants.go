@@ -1,4 +1,4 @@
-package libasherah
+package main
 
 const ERR_NOT_INITIALIZED = -100
 const ERR_ALREADY_INITIALIZED = -101
