@@ -1,4 +1,4 @@
-package main
+package libasherah
 
 import (
 	"encoding/json"
