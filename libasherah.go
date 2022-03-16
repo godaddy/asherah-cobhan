@@ -39,12 +39,12 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	options := &asherah.Options{}
 	result := cobhan.BufferToJsonStruct(configJson, options)
 	if result != cobhan.ERR_NONE {
-		output.StdoutDebugOutputf("Failed to deserialize configuration string %v", result)
+		output.StderrDebugOutputf("Failed to deserialize configuration string %v", result)
 		configString, stringResult := cobhan.BufferToString(configJson)
 		if stringResult != cobhan.ERR_NONE {
 			return result
 		}
-		output.StdoutDebugOutputf("Could not deserialize: %v", configString)
+		output.StderrDebugOutputf("Could not deserialize: %v", configString)
 		return result
 	}
 
@@ -93,8 +93,6 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 	if result != cobhan.ERR_NONE {
 		return result
 	}
-
-	output.VerboseOutputf("parentKeyId: %v", parentKeyId)
 
 	drr := appencryption.DataRowRecord{
 		Data: encryptedData,

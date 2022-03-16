@@ -29,14 +29,14 @@ func setupAsherahForTesting(t *testing.T, verbose bool) {
 	buf := testAllocateJsonBuffer(t, config)
 
 	result := SetupJson(cobhan.Ptr(&buf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("SetupJson returned %v", result)
 	}
 }
 
 func testAllocateStringBuffer(t *testing.T, str string) []byte {
 	buf, result := cobhan.AllocateStringBuffer(str)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("AllocateStringBuffer returned %v", result)
 	}
 	return buf
@@ -44,7 +44,7 @@ func testAllocateStringBuffer(t *testing.T, str string) []byte {
 
 func testAllocateBytesBuffer(t *testing.T, bytes []byte) []byte {
 	buf, result := cobhan.AllocateBytesBuffer(bytes)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("AllocateStringBuffer returned %v", result)
 	}
 	return buf
@@ -76,7 +76,7 @@ func TestSetupJsonAlternateConfiguration(t *testing.T) {
 	buf := testAllocateJsonBuffer(t, config)
 
 	result := SetupJson(cobhan.Ptr(&buf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("SetupJson returned %v", result)
 	}
 	Shutdown()
@@ -95,7 +95,7 @@ func TestSetupJsonTwice(t *testing.T) {
 	buf := testAllocateJsonBuffer(t, config)
 
 	result := SetupJson(cobhan.Ptr(&buf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("SetupJson returned %v", result)
 	}
 	defer Shutdown()
@@ -143,19 +143,19 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -167,12 +167,12 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 		parentKeyCreated,
 		cobhan.Ptr(&decryptedData),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Decrypt returned %v", result)
 	}
 
 	output, result := cobhan.BufferToStringSafe(&decryptedData)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToStringSafe returned %v", result)
 	}
 	if output != input {
@@ -414,19 +414,19 @@ func TestDecryptNullPartitionId(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -464,19 +464,19 @@ func TestDecryptNullEncryptedData(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -514,19 +514,19 @@ func TestDecryptNullEncryptedKey(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -564,19 +564,19 @@ func TestDecryptNullParentKeyId(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -614,17 +614,17 @@ func TestDecryptNullDecryptedData(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -662,7 +662,7 @@ func TestDecryptBadData(t *testing.T) {
 		cobhan.Ptr(&parentKeyId),
 		cobhan.Ptr(&parentKeyCreatedBuf),
 	)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("Encrypt returned %v", result)
 	}
 
@@ -675,12 +675,12 @@ func TestDecryptBadData(t *testing.T) {
 	decryptedData := cobhan.AllocateBuffer(256)
 
 	created, result := cobhan.BufferToInt64Safe(&createdBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
 	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToInt64Safe returned %v", result)
 	}
 
@@ -728,13 +728,13 @@ func cycleEncryptToJsonAndDecryptFromJson(input string, partition string, t *tes
 	encryptedDataBuf := cobhan.AllocateBuffer(estimatedBufferSize)
 
 	result := EncryptToJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&inputBuf), cobhan.Ptr(&encryptedDataBuf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("EncryptToJson returned %v", result)
 		return
 	}
 
 	encrypted_data, result := cobhan.BufferToString(cobhan.Ptr(&encryptedDataBuf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToString returned %v", result)
 		return
 	}
@@ -743,13 +743,13 @@ func cycleEncryptToJsonAndDecryptFromJson(input string, partition string, t *tes
 
 	decryptedDataBuf := cobhan.AllocateBuffer(len(encrypted_data))
 	result = DecryptFromJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&encryptedDataInputBuf), cobhan.Ptr(&decryptedDataBuf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("DecryptFromJson returned %v", result)
 		return
 	}
 
 	decryptedData, result := cobhan.BufferToString(cobhan.Ptr(&decryptedDataBuf))
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		t.Errorf("BufferToString returned %v", result)
 		return
 	}
