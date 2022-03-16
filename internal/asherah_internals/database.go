@@ -18,7 +18,7 @@ var (
 	dbdriver     = "mysql"
 )
 
-func newMysql(connStr string) (*sql.DB, error) {
+func NewMysql(connStr string) (*sql.DB, error) {
 	if dbconnection == nil {
 		dsn, err := mysql.ParseDSN(connStr)
 		if err != nil {
@@ -36,7 +36,7 @@ func newMysql(connStr string) (*sql.DB, error) {
 	return dbconnection, nil
 }
 
-func setRdbmsReplicaReadConsistencyValue(value string) (err error) {
+func SetRdbmsReplicaReadConsistencyValue(value string) (err error) {
 	if dbconnection != nil {
 		switch value {
 		case

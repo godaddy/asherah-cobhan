@@ -2,9 +2,11 @@ package asherah_internals
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 
 	"github.com/aws/aws-sdk-go/aws"
+	awssession "github.com/aws/aws-sdk-go/aws/session"
 	"github.com/godaddy/asherah/go/appencryption"
 	"github.com/godaddy/asherah/go/appencryption/pkg/crypto/aead"
 	"github.com/godaddy/asherah/go/appencryption/pkg/kms"
@@ -17,9 +19,9 @@ var globalInitialized int32 = 0
 
 func SetupAsherah(options *Options) error {
 	if globalInitialized != 0 {
-		return ERR_ALREADY_INITIALIZED
+		return errors.New("Asherah is already initialized")
 	}
-		
+
 	crypto := aead.NewAES256GCM()
 
 	if options.SessionCacheMaxSize == 0 {
@@ -50,6 +52,7 @@ func SetupAsherah(options *Options) error {
 		appencryption.WithSecretFactory(new(memguard.SecretFactory)),
 		appencryption.WithMetrics(false),
 	)
+	return nil
 }
 
 func ShutdownAsherah() {
@@ -60,32 +63,26 @@ func ShutdownAsherah() {
 	}
 }
 
-func Encrypt(partitionId string, payload []byte) (appencryption.DataRowRecord, error) {
+func Encrypt(partitionId string, payload []byte) (*appencryption.DataRowRecord, error) {
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		globalDebugOutputf("Encrypt: GetSession failed: %v", err)
-		return nil, ERR_GET_SESSION_FAILED
+		return nil, err
 	}
 	defer session.Close()
 
 	ctx := context.Background()
-	return session.Encrypt(ctx, data)
+	return session.Encrypt(ctx, payload)
 }
 
-func Decrypt(drr *appencryption.DataRowRecord) ([]byte, error) {
+func Decrypt(partitionId string, drr *appencryption.DataRowRecord) ([]byte, error) {
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		globalDebugOutput(err.Error())
-		return nil, ERR_GET_SESSION_FAILED
+		return nil, err
 	}
 	defer session.Close()
 
 	ctx := context.Background()
-	data, err := session.Decrypt(ctx, *drr)
-	if err != nil {
-		globalDebugOutputf("Decrypt failed: %v", err)
-		return nil, ERR_DECRYPT_FAILED
-	}
+	return session.Decrypt(ctx, *drr)
 }
 
 func newCryptoPolicy(options *Options) *appencryption.CryptoPolicy {
@@ -109,14 +106,14 @@ func newMetastore(opts *Options) appencryption.Metastore {
 	switch opts.Metastore {
 	case "rdbms":
 		// TODO: support other databases
-		db, err := newMysql(opts.ConnectionString)
+		db, err := NewMysql(opts.ConnectionString)
 		if err != nil {
 			panic(err)
 		}
 
 		// set optional replica read consistency
 		if len(opts.ReplicaReadConsistency) > 0 {
-			err := setRdbmsReplicaReadConsistencyValue(opts.ReplicaReadConsistency)
+			err := SetRdbmsReplicaReadConsistencyValue(opts.ReplicaReadConsistency)
 			if err != nil {
 				panic(err)
 			}
