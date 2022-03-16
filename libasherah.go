@@ -15,7 +15,6 @@ import (
 	"github.com/godaddy/asherah/go/appencryption"
 )
 
-const ERR_NONE = 0
 const ERR_NOT_INITIALIZED = -100
 const ERR_ALREADY_INITIALIZED = -101
 const ERR_GET_SESSION_FAILED = -102
@@ -29,12 +28,9 @@ const Base64Overhead = 1.34
 
 var EstimatedIntermediateKeyOverhead = 0
 
-func main() {
-}
-
 //export Shutdown
 func Shutdown() {
-	asherah.ShutdownAsherah()
+	asherah.Shutdown()
 }
 
 //export SetupJson
@@ -42,10 +38,10 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	cobhan.AllowTempFileBuffers(false)
 	options := &asherah.Options{}
 	result := cobhan.BufferToJsonStruct(configJson, options)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		output.StdoutDebugOutputf("Failed to deserialize configuration string %v", result)
 		configString, stringResult := cobhan.BufferToString(configJson)
-		if stringResult != ERR_NONE {
+		if stringResult != cobhan.ERR_NONE {
 			return result
 		}
 		output.StdoutDebugOutputf("Could not deserialize: %v", configString)
@@ -59,14 +55,14 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 
-	err := asherah.SetupAsherah(options)
+	err := asherah.Setup(options)
 	if err == asherah.ErrAsherahAlreadyInitialized {
 		return ERR_ALREADY_INITIALIZED
 	}
 	if err != nil {
 		return ERR_BAD_CONFIG
 	}
-	return ERR_NONE
+	return cobhan.ERR_NONE
 }
 
 //export EstimateBuffer
@@ -84,17 +80,17 @@ func EstimateBufferInt(dataLen int, partitionLen int) int {
 func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, encryptedKeyPtr unsafe.Pointer,
 	created int64, parentKeyIdPtr unsafe.Pointer, parentKeyCreated int64, outputDecryptedDataPtr unsafe.Pointer) int32 {
 	encryptedData, result := cobhan.BufferToBytes(encryptedDataPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
 	encryptedKey, result := cobhan.BufferToBytes(encryptedKeyPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
 	parentKeyId, result := cobhan.BufferToString(parentKeyIdPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
@@ -113,7 +109,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 	}
 
 	data, result := decryptData(partitionIdPtr, &drr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
@@ -126,53 +122,53 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 	outputParentKeyCreatedPtr unsafe.Pointer) int32 {
 
 	drr, result := encryptData(partitionIdPtr, dataPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		output.VerboseOutputf("Encrypted data length: %v", len(drr.Data))
 		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result)
 		return result
 	}
 
 	result = cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		output.VerboseOutputf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result)
 		return result
 	}
 
 	result = cobhan.StringToBuffer(drr.Key.ParentKeyMeta.ID, outputParentKeyIdPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result)
 		return result
 	}
 
 	result = cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result)
 		return result
 	}
 
-	return ERR_NONE
+	return cobhan.ERR_NONE
 }
 
 //export EncryptToJson
 func EncryptToJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPtr unsafe.Pointer) int32 {
 	drr, result := encryptData(partitionIdPtr, dataPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
 	result = cobhan.JsonToBuffer(drr, jsonPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		if result == cobhan.ERR_BUFFER_TOO_SMALL {
 			outputBytes, err := json.Marshal(drr)
 			if err == nil {
@@ -184,24 +180,24 @@ func EncryptToJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPt
 		return result
 	}
 
-	return ERR_NONE
+	return cobhan.ERR_NONE
 }
 
 //export DecryptFromJson
 func DecryptFromJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, dataPtr unsafe.Pointer) int32 {
 	var drr appencryption.DataRowRecord
 	result := cobhan.BufferToJsonStruct(jsonPtr, &drr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
 	data, result := decryptData(partitionIdPtr, &drr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(data, dataPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		if result == cobhan.ERR_BUFFER_TOO_SMALL {
 			output.VerboseOutputf("DecryptFromJson: BytesToBuffer: Output buffer needed %v bytes", len(data))
 			return result
@@ -210,17 +206,17 @@ func DecryptFromJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, data
 		return result
 	}
 
-	return ERR_NONE
+	return cobhan.ERR_NONE
 }
 
 func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appencryption.DataRowRecord, int32) {
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return nil, result
 	}
 
 	data, result := cobhan.BufferToBytes(dataPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return nil, result
 	}
 
@@ -233,12 +229,12 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 		return nil, ERR_ENCRYPT_FAILED
 	}
 
-	return drr, ERR_NONE
+	return drr, cobhan.ERR_NONE
 }
 
 func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord) ([]byte, int32) {
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
-	if result != ERR_NONE {
+	if result != cobhan.ERR_NONE {
 		return nil, result
 	}
 
@@ -251,5 +247,5 @@ func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord
 		return nil, ERR_DECRYPT_FAILED
 	}
 
-	return data, ERR_NONE
+	return data, cobhan.ERR_NONE
 }
