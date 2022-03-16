@@ -11,7 +11,9 @@ import (
 
 	"unsafe"
 
-	"github.com/godaddy/asherah/go/appencryption"
+	"github.com/godaddy/asherah/go/appencryption"	
+	"github.com/godaddy/asherah-cobhan/internal/asherah_internals"
+	"github.com/godaddy/asherah-cobhan/internal/debug_output"
 )
 
 const ERR_NONE = 0
