@@ -2,12 +2,13 @@ package main
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/godaddy/cobhan-go"
 )
 
-func setupAsherahForTesting(t *testing.T) {
+func setupAsherahForTesting(t *testing.T, verbose bool) {
 	config := &Options{}
 
 	config.KMS = "static"
@@ -19,7 +20,7 @@ func setupAsherahForTesting(t *testing.T) {
 	config.SessionCacheMaxSize = 2
 	config.ExpireAfter = 1000
 	config.CheckInterval = 1000
-	config.Verbose = true
+	config.Verbose = verbose
 	config.RegionMap = RegionMap{}
 	config.RegionMap["region1"] = "arn1"
 	config.RegionMap["region2"] = "arn2"
@@ -57,7 +58,7 @@ func testAllocateJsonBuffer(t *testing.T, obj interface{}) []byte {
 }
 
 func TestSetupJson(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	Shutdown()
 }
 
@@ -121,7 +122,7 @@ func TestSetupNullJson(t *testing.T) {
 }
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -223,7 +224,7 @@ func TestDecryptWithoutInit(t *testing.T) {
 }
 
 func TestEncryptNullPartitionId(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	data := testAllocateStringBuffer(t, "InputData")
@@ -248,7 +249,7 @@ func TestEncryptNullPartitionId(t *testing.T) {
 }
 
 func TestEncryptNullData(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -272,7 +273,7 @@ func TestEncryptNullData(t *testing.T) {
 }
 
 func TestEncryptNullEncryptedData(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -296,7 +297,7 @@ func TestEncryptNullEncryptedData(t *testing.T) {
 }
 
 func TestEncryptNullEncryptedKey(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -320,7 +321,7 @@ func TestEncryptNullEncryptedKey(t *testing.T) {
 }
 
 func TestEncryptNullCreatedBuf(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -344,7 +345,7 @@ func TestEncryptNullCreatedBuf(t *testing.T) {
 }
 
 func TestEncryptNullParentKeyId(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -368,7 +369,7 @@ func TestEncryptNullParentKeyId(t *testing.T) {
 }
 
 func TestEncryptNullParentKeyCreated(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -392,7 +393,7 @@ func TestEncryptNullParentKeyCreated(t *testing.T) {
 }
 
 func TestDecryptNullPartitionId(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -442,7 +443,7 @@ func TestDecryptNullPartitionId(t *testing.T) {
 }
 
 func TestDecryptNullEncryptedData(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -492,7 +493,7 @@ func TestDecryptNullEncryptedData(t *testing.T) {
 }
 
 func TestDecryptNullEncryptedKey(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -542,7 +543,7 @@ func TestDecryptNullEncryptedKey(t *testing.T) {
 }
 
 func TestDecryptNullParentKeyId(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -592,7 +593,7 @@ func TestDecryptNullParentKeyId(t *testing.T) {
 }
 
 func TestDecryptNullDecryptedData(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -640,7 +641,7 @@ func TestDecryptNullDecryptedData(t *testing.T) {
 }
 
 func TestDecryptBadData(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
 	defer Shutdown()
 
 	input := "InputData"
@@ -696,39 +697,64 @@ func TestDecryptBadData(t *testing.T) {
 }
 
 func TestEncryptToJsonAndDecryptFromJsonCycle(t *testing.T) {
-	setupAsherahForTesting(t)
+	setupAsherahForTesting(t, true)
+	defer Shutdown()
 
-	inputData := "InputData"
-	partitionIdBuf := testAllocateStringBuffer(t, "Partition")
-	inputBuf := testAllocateStringBuffer(t, inputData)
-	encryptedDataBuf := cobhan.AllocateBuffer(256)
+	cycleEncryptToJsonAndDecryptFromJson("1", "1", t)
+	cycleEncryptToJsonAndDecryptFromJson("InputString", "Partition", t)
+}
+
+func TestEncryptToJsonAndDecryptFromJsonCycleLong(t *testing.T) {
+	setupAsherahForTesting(t, false)
+	defer Shutdown()
+
+	longString := strings.Repeat("X", 16384)
+	cycleEncryptToJsonAndDecryptFromJson(longString, "Partition", t)
+	cycleEncryptToJsonAndDecryptFromJson(longString, longString, t)
+
+	longerString := strings.Repeat("X", 2097152)
+	cycleEncryptToJsonAndDecryptFromJson(longerString, "Partition", t)
+	cycleEncryptToJsonAndDecryptFromJson(longerString, longerString, t)
+}
+
+func cycleEncryptToJsonAndDecryptFromJson(input string, partition string, t *testing.T) {
+	partitionIdBuf := testAllocateStringBuffer(t, partition)
+	inputBuf := testAllocateStringBuffer(t, input)
+
+	estimatedBufferSize := EstimateBufferInt(len(input), len(partition))
+	t.Logf("Estimated buffer size: %v", estimatedBufferSize)
+
+	encryptedDataBuf := cobhan.AllocateBuffer(estimatedBufferSize)
 
 	result := EncryptToJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&inputBuf), cobhan.Ptr(&encryptedDataBuf))
 	if result != ERR_NONE {
 		t.Errorf("EncryptToJson returned %v", result)
+		return
 	}
 
 	encrypted_data, result := cobhan.BufferToString(cobhan.Ptr(&encryptedDataBuf))
 	if result != ERR_NONE {
 		t.Errorf("BufferToString returned %v", result)
+		return
 	}
 
 	encryptedDataInputBuf := testAllocateStringBuffer(t, encrypted_data)
 
-	decryptedDataBuf := cobhan.AllocateBuffer(256)
+	decryptedDataBuf := cobhan.AllocateBuffer(len(encrypted_data))
 	result = DecryptFromJson(cobhan.Ptr(&partitionIdBuf), cobhan.Ptr(&encryptedDataInputBuf), cobhan.Ptr(&decryptedDataBuf))
 	if result != ERR_NONE {
 		t.Errorf("DecryptFromJson returned %v", result)
+		return
 	}
 
 	decryptedData, result := cobhan.BufferToString(cobhan.Ptr(&decryptedDataBuf))
 	if result != ERR_NONE {
 		t.Errorf("BufferToString returned %v", result)
+		return
 	}
 
-	if decryptedData != inputData {
-		t.Errorf("decryptedData %v does not match inputData data %v", decryptedData, inputData)
+	if decryptedData != input {
+		t.Errorf("decryptedData %v does not match inputData data %v", decryptedData, input)
+		return
 	}
-
-	Shutdown()
 }

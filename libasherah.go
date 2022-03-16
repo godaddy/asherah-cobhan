@@ -5,6 +5,7 @@ import (
 )
 import (
 	"context"
+	"encoding/json"
 	"sync/atomic"
 
 	"github.com/godaddy/asherah/go/securememory/memguard"
@@ -27,6 +28,12 @@ const ERR_GET_SESSION_FAILED = -102
 const ERR_ENCRYPT_FAILED = -103
 const ERR_DECRYPT_FAILED = -104
 const ERR_BAD_CONFIG = -105
+
+const EstimatedEncryptionOverhead = 48
+const EstimatedEnvelopeOverhead = 185
+const Base64Overhead = 1.34
+
+var EstimatedIntermediateKeyOverhead = 0
 
 func main() {
 }
@@ -76,6 +83,8 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 
 	globalDebugOutput("Successfully deserialized config JSON")
 	globalDebugOutput(options)
+
+	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 
 	return setupAsherah(options)
 }
@@ -176,6 +185,17 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 	return m
 }
 
+//export EstimateBuffer
+func EstimateBuffer(dataLen int32, partitionLen int32) int32 {
+	estimatedDataLen := float64(dataLen + EstimatedEncryptionOverhead) * Base64Overhead
+	result := int32(cobhan.BUFFER_HEADER_SIZE + EstimatedEnvelopeOverhead + EstimatedIntermediateKeyOverhead + int(partitionLen) + int(estimatedDataLen))
+	return result
+}
+
+func EstimateBufferInt(dataLen int, partitionLen int) int {
+	return int(EstimateBuffer(int32(dataLen), int32(partitionLen)))
+}
+
 //export Decrypt
 func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, encryptedKeyPtr unsafe.Pointer,
 	created int64, parentKeyIdPtr unsafe.Pointer, parentKeyCreated int64, outputDecryptedDataPtr unsafe.Pointer) int32 {
@@ -251,8 +271,6 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		return result
 	}
 
-	globalDebugOutput("Encrypting with parent key ID: " + drr.Key.ParentKeyMeta.ID)
-
 	result = cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
 	if result != ERR_NONE {
 		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result)
@@ -271,6 +289,13 @@ func EncryptToJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPt
 
 	result = cobhan.JsonToBuffer(drr, jsonPtr)
 	if result != ERR_NONE {
+		if result == cobhan.ERR_BUFFER_TOO_SMALL {
+			outputBytes, err := json.Marshal(drr)
+			if err == nil {
+				globalDebugOutputf("EncryptToJson: JsonToBuffer: Output buffer needed %v bytes", len(outputBytes))
+				return result
+			}
+		}
 		globalDebugOutputf("EncryptToJson: JsonToBuffer returned %v for jsonPtr", result)
 		return result
 	}
@@ -293,6 +318,10 @@ func DecryptFromJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, data
 
 	result = cobhan.BytesToBuffer(data, dataPtr)
 	if result != ERR_NONE {
+		if result == cobhan.ERR_BUFFER_TOO_SMALL {
+			globalDebugOutputf("DecryptFromJson: BytesToBuffer: Output buffer needed %v bytes", len(data))
+			return result
+		}
 		globalDebugOutputf("DecryptFromJson: BytesToBuffer returned %v for dataPtr", result)
 		return result
 	}
@@ -328,8 +357,6 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 	if result != ERR_NONE {
 		return nil, result
 	}
-
-	globalDebugOutputf("Encrypting with partition: %v", partitionId)
 
 	data, result := cobhan.BufferToBytes(dataPtr)
 	if result != ERR_NONE {
