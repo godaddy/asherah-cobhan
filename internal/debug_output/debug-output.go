@@ -1,4 +1,4 @@
-package main
+package debug_output
 
 import "fmt"
 
