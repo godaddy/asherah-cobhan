@@ -17,6 +17,9 @@ import (
 
 var EstimatedIntermediateKeyOverhead = 0
 
+func main() {
+}
+
 //export Shutdown
 func Shutdown() {
 	asherah.Shutdown()
