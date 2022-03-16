@@ -16,11 +16,11 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure packages
-      run: ./ubuntu-configure.sh
+      run: scripts/ubuntu-configure.sh
     - name: Build for Linux x64
-      run: ./ubuntu-build-x64.sh
+      run: scripts/ubuntu-build-x64.sh
     - name: Build for Linux arm64
-      run: ./ubuntu-build-arm64.sh
+      run: scripts/ubuntu-build-arm64.sh
   build-macos:
     timeout-minutes: 15
     runs-on: 'macos-latest'
@@ -31,4 +31,4 @@ jobs:
       with:
         go-version: 1.17
     - name: Build for MacOS
-      run: ./macos-build.sh
+      run: scripts/macos-build.sh
