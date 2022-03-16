@@ -14,13 +14,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Configure packages
-      run: ./ubuntu-configure.sh
+      run: scripts/ubuntu-configure.sh
     - name: Build for Linux x64
-      run: ./ubuntu-build-x64.sh
+      run: scripts/ubuntu-build-x64.sh
     - name: Build for Linux arm64
-      run: ./ubuntu-build-arm64.sh
+      run: scripts/ubuntu-build-arm64.sh
     - name: Upload Artifacts
-      run: ./upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-arm64.h output/libasherah-arm64.so
+      run: scripts/upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-arm64.h output/libasherah-arm64.so
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-macos:
@@ -33,8 +33,8 @@ jobs:
       with:
         go-version: 1.17
     - name: Build for MacOS
-      run: ./macos-build.sh
+      run: scripts/macos-build.sh
     - name: Upload Artifacts
-      run: ./upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib
+      run: scripts/upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
