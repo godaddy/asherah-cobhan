@@ -28,6 +28,12 @@ const ERR_ENCRYPT_FAILED = -103
 const ERR_DECRYPT_FAILED = -104
 const ERR_BAD_CONFIG = -105
 
+const EstimatedEncryptionOverhead = 48
+const EstimatedEnvelopeOverhead = 185
+const Base64Overhead = 1.33
+
+var EstimatedIntermediateKeyOverhead = 0
+
 func main() {
 }
 
@@ -76,6 +82,8 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 
 	globalDebugOutput("Successfully deserialized config JSON")
 	globalDebugOutput(options)
+
+	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 
 	return setupAsherah(options)
 }
@@ -174,6 +182,16 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 	}
 
 	return m
+}
+
+//export EstimateBuffer
+func EstimateBuffer(dataLen int32, partitionLen int32) int32 {
+	estimatedDataLen := float64(dataLen+EstimatedEncryptionOverhead) * Base64Overhead
+	return int32(cobhan.BUFFER_HEADER_SIZE + EstimatedEnvelopeOverhead + EstimatedIntermediateKeyOverhead + int(estimatedDataLen) + 1)
+}
+
+func EstimateBufferInt(dataLen int, partitionLen int) int {
+	return int(EstimateBuffer(int32(dataLen), int32(partitionLen)))
 }
 
 //export Decrypt
