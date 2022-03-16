@@ -11,9 +11,9 @@ import (
 
 	"unsafe"
 
-	"github.com/godaddy/asherah/go/appencryption"	
-	"github.com/godaddy/asherah-cobhan/internal/asherah_internals"
-	"github.com/godaddy/asherah-cobhan/internal/debug_output"
+	"github.com/godaddy/asherah-cobhan/internal/asherah"
+	"github.com/godaddy/asherah-cobhan/internal/output"
+	"github.com/godaddy/asherah/go/appencryption"
 )
 
 const ERR_NONE = 0
@@ -38,31 +38,31 @@ var globalDebugOutputf func(format string, args ...interface{}) = nil
 
 //export Shutdown
 func Shutdown() {
-	ShutdownAsherah()
+	asherah.ShutdownAsherah()
 }
 
 //export SetupJson
 func SetupJson(configJson unsafe.Pointer) int32 {
 	cobhan.AllowTempFileBuffers(false)
-	options := &Options{}
+	options := &asherah.Options{}
 	result := cobhan.BufferToJsonStruct(configJson, options)
 	if result != ERR_NONE {
-		StdoutDebugOutputf("Failed to deserialize configuration string %v", result)
+		output.StdoutDebugOutputf("Failed to deserialize configuration string %v", result)
 		configString, stringResult := cobhan.BufferToString(configJson)
 		if stringResult != ERR_NONE {
 			return result
 		}
-		StdoutDebugOutputf("Could not deserialize: %v", configString)
+		output.StdoutDebugOutputf("Could not deserialize: %v", configString)
 		return result
 	}
 
 	if options.Verbose {
-		globalDebugOutput = StdoutDebugOutput
-		globalDebugOutputf = StdoutDebugOutputf
+		globalDebugOutput = output.StdoutDebugOutput
+		globalDebugOutputf = output.StdoutDebugOutputf
 		globalDebugOutput("Enabled debug output")
 	} else {
-		globalDebugOutput = NullDebugOutput
-		globalDebugOutputf = NullDebugOutputf
+		globalDebugOutput = output.NullDebugOutput
+		globalDebugOutputf = output.NullDebugOutputf
 	}
 
 	globalDebugOutput("Successfully deserialized config JSON")
@@ -70,7 +70,7 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 
-	SetupAsherah(options)
+	asherah.SetupAsherah(options)
 
 	return ERR_NONE
 }
