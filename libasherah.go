@@ -4,7 +4,6 @@ import (
 	"C"
 )
 import (
-	"context"
 	"encoding/json"
 
 	"github.com/godaddy/cobhan-go"
@@ -33,9 +32,6 @@ var EstimatedIntermediateKeyOverhead = 0
 func main() {
 }
 
-var globalDebugOutput func(interface{}) = nil
-var globalDebugOutputf func(format string, args ...interface{}) = nil
-
 //export Shutdown
 func Shutdown() {
 	asherah.ShutdownAsherah()
@@ -56,22 +52,20 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 		return result
 	}
 
-	if options.Verbose {
-		globalDebugOutput = output.StdoutDebugOutput
-		globalDebugOutputf = output.StdoutDebugOutputf
-		globalDebugOutput("Enabled debug output")
-	} else {
-		globalDebugOutput = output.NullDebugOutput
-		globalDebugOutputf = output.NullDebugOutputf
-	}
+	output.EnableVerboseOutput(options.Verbose)
 
-	globalDebugOutput("Successfully deserialized config JSON")
-	globalDebugOutput(options)
+	output.VerboseOutput("Successfully deserialized config JSON")
+	output.VerboseOutput(options)
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 
-	asherah.SetupAsherah(options)
-
+	err := asherah.SetupAsherah(options)
+	if err == asherah.ErrAsherahAlreadyInitialized {
+		return ERR_ALREADY_INITIALIZED
+	}
+	if err != nil {
+		return ERR_BAD_CONFIG
+	}
 	return ERR_NONE
 }
 
@@ -104,7 +98,7 @@ func Decrypt(partitionIdPtr unsafe.Pointer, encryptedDataPtr unsafe.Pointer, enc
 		return result
 	}
 
-	globalDebugOutputf("parentKeyId: %v", parentKeyId)
+	output.VerboseOutputf("parentKeyId: %v", parentKeyId)
 
 	drr := appencryption.DataRowRecord{
 		Data: encryptedData,
@@ -138,32 +132,32 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 
 	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
 	if result != ERR_NONE {
-		globalDebugOutputf("Encrypted data length: %v", len(drr.Data))
-		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
+		output.VerboseOutputf("Encrypted data length: %v", len(drr.Data))
+		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedDataPtr", result)
 		return result
 	}
 
 	result = cobhan.BytesToBuffer(drr.Key.EncryptedKey, outputEncryptedKeyPtr)
 	if result != ERR_NONE {
-		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result)
+		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputEncryptedKeyPtr", result)
 		return result
 	}
 
 	result = cobhan.Int64ToBuffer(drr.Key.Created, outputCreatedPtr)
 	if result != ERR_NONE {
-		globalDebugOutputf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result)
+		output.VerboseOutputf("Encrypt: Int64ToBuffer returned %v for outputCreatedPtr", result)
 		return result
 	}
 
 	result = cobhan.StringToBuffer(drr.Key.ParentKeyMeta.ID, outputParentKeyIdPtr)
 	if result != ERR_NONE {
-		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result)
+		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyIdPtr", result)
 		return result
 	}
 
 	result = cobhan.Int64ToBuffer(drr.Key.ParentKeyMeta.Created, outputParentKeyCreatedPtr)
 	if result != ERR_NONE {
-		globalDebugOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result)
+		output.VerboseOutputf("Encrypt: BytesToBuffer returned %v for outputParentKeyCreatedPtr", result)
 		return result
 	}
 
@@ -182,11 +176,11 @@ func EncryptToJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPt
 		if result == cobhan.ERR_BUFFER_TOO_SMALL {
 			outputBytes, err := json.Marshal(drr)
 			if err == nil {
-				globalDebugOutputf("EncryptToJson: JsonToBuffer: Output buffer needed %v bytes", len(outputBytes))
+				output.VerboseOutputf("EncryptToJson: JsonToBuffer: Output buffer needed %v bytes", len(outputBytes))
 				return result
 			}
 		}
-		globalDebugOutputf("EncryptToJson: JsonToBuffer returned %v for jsonPtr", result)
+		output.VerboseOutputf("EncryptToJson: JsonToBuffer returned %v for jsonPtr", result)
 		return result
 	}
 
@@ -209,10 +203,10 @@ func DecryptFromJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, data
 	result = cobhan.BytesToBuffer(data, dataPtr)
 	if result != ERR_NONE {
 		if result == cobhan.ERR_BUFFER_TOO_SMALL {
-			globalDebugOutputf("DecryptFromJson: BytesToBuffer: Output buffer needed %v bytes", len(data))
+			output.VerboseOutputf("DecryptFromJson: BytesToBuffer: Output buffer needed %v bytes", len(data))
 			return result
 		}
-		globalDebugOutputf("DecryptFromJson: BytesToBuffer returned %v for dataPtr", result)
+		output.VerboseOutputf("DecryptFromJson: BytesToBuffer returned %v for dataPtr", result)
 		return result
 	}
 
@@ -220,12 +214,6 @@ func DecryptFromJson(partitionIdPtr unsafe.Pointer, jsonPtr unsafe.Pointer, data
 }
 
 func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appencryption.DataRowRecord, int32) {
-	if globalInitialized == 0 {
-		return nil, ERR_NOT_INITIALIZED
-	}
-
-	globalDebugOutput("Encrypt()")
-
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
 	if result != ERR_NONE {
 		return nil, result
@@ -236,17 +224,12 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 		return nil, result
 	}
 
-	session, err := globalSessionFactory.GetSession(partitionId)
+	drr, err := asherah.Encrypt(partitionId, data)
 	if err != nil {
-		globalDebugOutputf("Encrypt: GetSession failed: %v", err)
-		return nil, ERR_GET_SESSION_FAILED
-	}
-	defer session.Close()
-
-	ctx := context.Background()
-	drr, err := session.Encrypt(ctx, data)
-	if err != nil {
-		globalDebugOutput("Encrypt failed: " + err.Error())
+		if err == asherah.ErrAsherahNotInitialized {
+			return nil, ERR_NOT_INITIALIZED
+		}
+		output.VerboseOutputf("Encrypt failed: %v", err)
 		return nil, ERR_ENCRYPT_FAILED
 	}
 
@@ -254,30 +237,17 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 }
 
 func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord) ([]byte, int32) {
-	if globalInitialized == 0 {
-		return nil, ERR_NOT_INITIALIZED
-	}
-
-	globalDebugOutput("Decrypt()")
-
 	partitionId, result := cobhan.BufferToString(partitionIdPtr)
 	if result != ERR_NONE {
 		return nil, result
 	}
 
-	globalDebugOutputf("Decrypting with partition: %v", partitionId)
-
-	session, err := globalSessionFactory.GetSession(partitionId)
+	data, err := asherah.Decrypt(partitionId, drr)
 	if err != nil {
-		globalDebugOutput(err.Error())
-		return nil, ERR_GET_SESSION_FAILED
-	}
-	defer session.Close()
-
-	ctx := context.Background()
-	data, err := session.Decrypt(ctx, *drr)
-	if err != nil {
-		globalDebugOutputf("Decrypt failed: %v", err)
+		if err == asherah.ErrAsherahNotInitialized {
+			return nil, ERR_NOT_INITIALIZED
+		}
+		output.VerboseOutputf("Decrypt failed: %v", err)
 		return nil, ERR_DECRYPT_FAILED
 	}
 

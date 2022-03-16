@@ -5,11 +5,12 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/godaddy/asherah-cobhan/internal/asherah"
 	"github.com/godaddy/cobhan-go"
 )
 
 func setupAsherahForTesting(t *testing.T, verbose bool) {
-	config := &Options{}
+	config := &asherah.Options{}
 
 	config.KMS = "static"
 	config.ServiceName = "TestService"
@@ -21,7 +22,7 @@ func setupAsherahForTesting(t *testing.T, verbose bool) {
 	config.ExpireAfter = 1000
 	config.CheckInterval = 1000
 	config.Verbose = verbose
-	config.RegionMap = RegionMap{}
+	config.RegionMap = asherah.RegionMap{}
 	config.RegionMap["region1"] = "arn1"
 	config.RegionMap["region2"] = "arn2"
 
@@ -63,7 +64,7 @@ func TestSetupJson(t *testing.T) {
 }
 
 func TestSetupJsonAlternateConfiguration(t *testing.T) {
-	config := &Options{}
+	config := &asherah.Options{}
 
 	config.KMS = "static"
 	config.ServiceName = "TestService"
@@ -82,7 +83,7 @@ func TestSetupJsonAlternateConfiguration(t *testing.T) {
 }
 
 func TestSetupJsonTwice(t *testing.T) {
-	config := &Options{}
+	config := &asherah.Options{}
 
 	config.KMS = "static"
 	config.ServiceName = "TestService"
