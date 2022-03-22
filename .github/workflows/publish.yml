@@ -19,8 +19,10 @@ jobs:
       run: scripts/ubuntu-build-x64.sh
     - name: Build for Linux arm64
       run: scripts/ubuntu-build-arm64.sh
+    - name: Publish Linux sha256sums
+      run: scripts/generate-sha256.sh > output/SHA256SUMS
     - name: Upload Artifacts
-      run: scripts/upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-arm64.h output/libasherah-arm64.so
+      run: scripts/upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-arm64.h output/libasherah-arm64.so output/SHA256SUMS
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-macos:
@@ -34,7 +36,9 @@ jobs:
         go-version: 1.18
     - name: Build for MacOS
       run: scripts/macos-build.sh
+    - name: Publish MacOS sha256sums
+      run: scripts/generate-sha256.sh > output/SHA256SUMS-darwin
     - name: Upload Artifacts
-      run: scripts/upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib
+      run: scripts/upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib output/SHA256SUMS-darwin
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
