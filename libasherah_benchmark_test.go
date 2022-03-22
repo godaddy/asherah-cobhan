@@ -18,8 +18,8 @@ func setupAsherahForBenchmark(b *testing.B, verbose bool) {
 	config.ProductID = "TestProduct"
 	config.Metastore = "memory"
 	config.EnableSessionCaching = true
-	config.SessionCacheDuration = 1000
-	config.SessionCacheMaxSize = 2
+	config.SessionCacheDuration = time.Hour * 24
+	config.SessionCacheMaxSize = 20000
 	config.ExpireAfter = time.Hour * 24
 	config.CheckInterval = time.Hour * 24
 	config.Verbose = verbose
@@ -56,7 +56,7 @@ func Benchmark_EncryptDecryptRoundTrip(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		iteration := fmt.Sprint(i)
-		cycleEncryptToJsonAndDecryptFromJsonBenchmark("InputString"+iteration, "Partition"+iteration, b)
+		cycleEncryptToJsonAndDecryptFromJsonBenchmark("InputString"+iteration, "Partition", b)
 	}
 
 	b.StopTimer()
