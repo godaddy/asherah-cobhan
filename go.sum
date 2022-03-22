@@ -239,8 +239,8 @@ github.com/godaddy/asherah/go/appencryption v0.2.3 h1:csFgfXW26bk9TaG7/EJ8pXpT10
 github.com/godaddy/asherah/go/appencryption v0.2.3/go.mod h1:lfa3aJ6+6Zhr3JNw1158UIDIV9Ve+XL2mnuqsau4CNY=
 github.com/godaddy/asherah/go/securememory v0.1.2 h1:B7zfZh6UovkDVbXVtHDrBbfJmpmJ0f534jvwgnHDotg=
 github.com/godaddy/asherah/go/securememory v0.1.2/go.mod h1:N0mgZcRmF/RFjLQBac/LW2EgkBw4BOKHkIT8rO1pBRU=
-github.com/godaddy/cobhan-go v0.2.0 h1:wTYRR1LbJZdlaZuOMB/BlYK0aOXJ+bL1fUDhIFi9n8s=
-github.com/godaddy/cobhan-go v0.2.0/go.mod h1:aPw0Llv8HqK9ycHxNRiPJjLj1D/MjjZVuv1LXK2sxEA=
+github.com/godaddy/cobhan-go v0.3.0 h1:48aXRTryCPA2FKlbYMx3ykR0GKVdKamVjmTAtEGb6ns=
+github.com/godaddy/cobhan-go v0.3.0/go.mod h1:07aRS3E5apQ9gmpSn2e/BmniBDk8AU67QtmQda8uoNI=
 github.com/godbus/dbus v0.0.0-20151105175453-c7fdd8b5cd55/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20180201030542-885f9cc04c9c/go.mod h1:/YcGZj5zSblfDWMMoOzV4fas9FZnQYTkDnsGvmh2Grw=
 github.com/godbus/dbus v0.0.0-20190422162347-ade71ed3457e/go.mod h1:bBOAhwG1umN6/6ZUMtDFBMQR8jRg9O75tm9K00oMsK4=

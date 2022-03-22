@@ -7,7 +7,7 @@ require (
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/godaddy/asherah/go/appencryption v0.2.3
 	github.com/godaddy/asherah/go/securememory v0.1.2
-	github.com/godaddy/cobhan-go v0.2.0
+	github.com/godaddy/cobhan-go v0.3.0
 )
 
 require (
