@@ -11,7 +11,11 @@ if [[ ${VERSION#v} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
     gh auth login --with-token <.githubtoken
     rm .githubtoken
   fi
-  gh release upload "${VERSION}" "$@"  --clobber
+  gh release upload "${VERSION}" "$@"  --clobber || \
+    gh release upload "${VERSION}" "$@"  --clobber || \
+    gh release upload "${VERSION}" "$@"  --clobber || \
+    gh release upload "${VERSION}" "$@"  --clobber ||
+    (echo "gh release failed after retries!" && exit 1)
   exit 0
 fi
 
