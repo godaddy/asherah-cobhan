@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
@@ -113,6 +114,43 @@ func TestSetupInvalidJson(t *testing.T) {
 	result := SetupJson(cobhan.Ptr(&buf))
 	if result != cobhan.ERR_JSON_DECODE_FAILED {
 		t.Errorf("Expected SetupJson to return ERR_JSON_DECODE_FAILED got %v", result)
+	}
+	Shutdown()
+}
+
+func TestSetEnv(t *testing.T) {
+	setupAsherahForTesting(t, true)
+	env := Env{}
+	env["VAR1"] = "VALUE1"
+	env["VAR2"] = "VALUE2"
+
+	buf := testAllocateJsonBuffer(t, env)
+
+	result := SetEnv(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_NONE {
+		t.Errorf("SetEnv returned %v", result)
+	}
+
+	var1 := os.Getenv("VAR1")
+	if var1 != "VALUE1" {
+		t.Errorf("Failed to set VAR1 env var")
+	}
+
+	var2 := os.Getenv("VAR2")
+	if var2 != "VALUE2" {
+		t.Errorf("Failed to set VAR2 env var")
+	}
+	Shutdown()
+}
+
+func TestSetupInvalidEnv(t *testing.T) {
+	str := "}InvalidEnv{"
+
+	buf := testAllocateStringBuffer(t, str)
+
+	result := SetEnv(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_JSON_DECODE_FAILED {
+		t.Errorf("Expected SetEnv to return ERR_JSON_DECODE_FAILED got %v", result)
 	}
 	Shutdown()
 }

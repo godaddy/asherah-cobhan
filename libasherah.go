@@ -5,6 +5,7 @@ import (
 )
 import (
 	"encoding/json"
+	"os"
 
 	"github.com/godaddy/cobhan-go"
 
@@ -23,6 +24,32 @@ func main() {
 //export Shutdown
 func Shutdown() {
 	asherah.Shutdown()
+}
+
+type Env map[string]string
+
+/*
+  Work-around to load environment variables needed by Asherah dependencies,
+  because sometimes Go os.Getenv() doesn't see variables set by C.setenv().
+  References:
+    https://github.com/golang/go/wiki/cgo#environmental-variables
+    https://github.com/golang/go/issues/27693
+*/
+//export SetEnv
+func SetEnv(envJson unsafe.Pointer) int32 {
+	cobhan.AllowTempFileBuffers(false)
+	env := Env{}
+
+	result := cobhan.BufferToJsonStruct(envJson, &env)
+	if result != cobhan.ERR_NONE {
+		return result
+	}
+
+	for k, v := range env {
+		os.Setenv(k, v)
+	}
+
+	return cobhan.ERR_NONE
 }
 
 //export SetupJson
