@@ -10,7 +10,9 @@ import (
 	"github.com/godaddy/cobhan-go"
 )
 
-func setupAsherahForTesting(t *testing.T, verbose bool) {
+var Verbose = true
+
+func setupAsherahForTesting(t *testing.T) {
 	config := &asherah.Options{}
 
 	config.KMS = "static"
@@ -22,7 +24,7 @@ func setupAsherahForTesting(t *testing.T, verbose bool) {
 	config.SessionCacheMaxSize = 2
 	config.ExpireAfter = 1000
 	config.CheckInterval = 1000
-	config.Verbose = verbose
+	config.Verbose = Verbose
 	config.RegionMap = asherah.RegionMap{}
 	config.RegionMap["region1"] = "arn1"
 	config.RegionMap["region2"] = "arn2"
@@ -60,7 +62,7 @@ func testAllocateJsonBuffer(t *testing.T, obj interface{}) []byte {
 }
 
 func TestSetupJson(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	Shutdown()
 }
 
@@ -72,7 +74,7 @@ func TestSetupJsonAlternateConfiguration(t *testing.T) {
 	config.ProductID = "TestProduct"
 	config.Metastore = "memory"
 	config.EnableSessionCaching = true
-	config.Verbose = false
+	config.Verbose = Verbose
 
 	buf := testAllocateJsonBuffer(t, config)
 
@@ -91,7 +93,7 @@ func TestSetupJsonTwice(t *testing.T) {
 	config.ProductID = "TestProduct"
 	config.Metastore = "memory"
 	config.EnableSessionCaching = true
-	config.Verbose = true
+	config.Verbose = Verbose
 
 	buf := testAllocateJsonBuffer(t, config)
 
@@ -119,7 +121,7 @@ func TestSetupInvalidJson(t *testing.T) {
 }
 
 func TestSetEnv(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	env := Env{}
 	env["VAR1"] = "VALUE1"
 	env["VAR2"] = "VALUE2"
@@ -161,7 +163,7 @@ func TestSetupNullJson(t *testing.T) {
 }
 
 func TestEncryptDecryptRoundTrip(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -263,7 +265,7 @@ func TestDecryptWithoutInit(t *testing.T) {
 }
 
 func TestEncryptNullPartitionId(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	data := testAllocateStringBuffer(t, "InputData")
@@ -288,7 +290,7 @@ func TestEncryptNullPartitionId(t *testing.T) {
 }
 
 func TestEncryptNullData(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -312,7 +314,7 @@ func TestEncryptNullData(t *testing.T) {
 }
 
 func TestEncryptNullEncryptedData(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -336,7 +338,7 @@ func TestEncryptNullEncryptedData(t *testing.T) {
 }
 
 func TestEncryptNullEncryptedKey(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -360,7 +362,7 @@ func TestEncryptNullEncryptedKey(t *testing.T) {
 }
 
 func TestEncryptNullCreatedBuf(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -384,7 +386,7 @@ func TestEncryptNullCreatedBuf(t *testing.T) {
 }
 
 func TestEncryptNullParentKeyId(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -408,7 +410,7 @@ func TestEncryptNullParentKeyId(t *testing.T) {
 }
 
 func TestEncryptNullParentKeyCreated(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	partitionId := testAllocateStringBuffer(t, "Partition")
@@ -432,7 +434,7 @@ func TestEncryptNullParentKeyCreated(t *testing.T) {
 }
 
 func TestDecryptNullPartitionId(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -482,7 +484,7 @@ func TestDecryptNullPartitionId(t *testing.T) {
 }
 
 func TestDecryptNullEncryptedData(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -532,7 +534,7 @@ func TestDecryptNullEncryptedData(t *testing.T) {
 }
 
 func TestDecryptNullEncryptedKey(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -582,7 +584,7 @@ func TestDecryptNullEncryptedKey(t *testing.T) {
 }
 
 func TestDecryptNullParentKeyId(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -632,7 +634,7 @@ func TestDecryptNullParentKeyId(t *testing.T) {
 }
 
 func TestDecryptNullDecryptedData(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -680,7 +682,7 @@ func TestDecryptNullDecryptedData(t *testing.T) {
 }
 
 func TestDecryptBadData(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	input := "InputData"
@@ -736,7 +738,7 @@ func TestDecryptBadData(t *testing.T) {
 }
 
 func TestEncryptToJsonAndDecryptFromJsonCycle(t *testing.T) {
-	setupAsherahForTesting(t, true)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	cycleEncryptToJsonAndDecryptFromJson("1", "1", t)
@@ -744,7 +746,7 @@ func TestEncryptToJsonAndDecryptFromJsonCycle(t *testing.T) {
 }
 
 func TestEncryptToJsonAndDecryptFromJsonCycleLong(t *testing.T) {
-	setupAsherahForTesting(t, false)
+	setupAsherahForTesting(t)
 	defer Shutdown()
 
 	longString := strings.Repeat("X", 16384)
