@@ -70,7 +70,6 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	output.EnableVerboseOutput(options.Verbose)
 
 	output.VerboseOutput("Successfully deserialized config JSON")
-	output.VerboseOutput(options)
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 
