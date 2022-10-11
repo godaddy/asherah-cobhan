@@ -25,6 +25,19 @@ jobs:
       run: scripts/upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-x64.a output/libasherah-x64-archive.h output/libasherah-arm64.h output/libasherah-arm64.so output/libasherah-arm64.a output/libasherah-arm64-archive.h output/SHA256SUMS
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build-alpine:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:edge
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build for Alpine x64
+      run: scripts/alpine-build-x64.sh
+    - name: Publish Alpine sha256sums
+      run: scripts/generate-sha256.sh > output/SHA256SUMS-alpine
+    - name: Upload Artifacts
+      run: scripts/upload-artifacts.sh output/libasherah-alpine-x64.h output/libasherah-alpine-x64.sh output/libasherah-alpine-x64.a output/libasherah-alpine-x64-archive.h
   build-macos:
     timeout-minutes: 15
     runs-on: 'macos-latest'

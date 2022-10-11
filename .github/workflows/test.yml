@@ -21,6 +21,15 @@ jobs:
       run: scripts/ubuntu-build-x64.sh
     - name: Build for Linux arm64
       run: scripts/ubuntu-build-arm64.sh
+  build-alpine:
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:edge
+    steps:
+    - uses: actions/checkout@v2
+    - name: Build for Alpine x64
+      run: scripts/alpine-build-x64.sh
   build-macos:
     timeout-minutes: 15
     runs-on: 'macos-latest'
