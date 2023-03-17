@@ -11,10 +11,13 @@ jobs:
     timeout-minutes: 15
     runs-on: ubuntu-latest
     container:
-      image: golang:1.19.2-bullseye
+      image: golang:1.20.2-bullseye
       options: --ulimit core=-1 --ulimit memlock=-1:-1
     steps:
     - uses: actions/checkout@v2
+    # Fix "fatal: detected dubious ownership in repository"
+    - name: Change owner of container working directory
+      run: chown root:root .
     - name: Configure packages
       run: scripts/ubuntu-configure.sh
     - name: Build for Linux x64
@@ -29,6 +32,6 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
-        go-version: 1.19.2
+        go-version: 1.20.2
     - name: Build for MacOS
       run: scripts/macos-build.sh
