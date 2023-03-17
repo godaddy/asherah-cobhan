@@ -13,6 +13,9 @@ jobs:
       options: --ulimit core=-1 --ulimit memlock=-1:-1
     steps:
     - uses: actions/checkout@v2
+    # Fix "fatal: detected dubious ownership in repository"
+    - name: Change owner of container working directory
+      run: chown root:root .
     - name: Configure packages
       run: scripts/ubuntu-configure.sh
     - name: Build for Linux x64
