@@ -76,7 +76,7 @@ func Encrypt(partitionId string, data []byte) (*appencryption.DataRowRecord, err
 	if globalInitialized == 0 {
 		return nil, ErrAsherahNotInitialized
 	}
-		
+
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
 		return nil, err
