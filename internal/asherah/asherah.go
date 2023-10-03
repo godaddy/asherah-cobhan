@@ -24,7 +24,7 @@ var ErrAsherahFailedInitialization = errors.New("asherah failed initialization")
 
 func Setup(options *Options) error {
 	if atomic.LoadInt32(&globalInitialized) == 1 {
-		output.StderrDebugOutputf("Failed to initialize asherah: already initialized")
+		output.StderrDebugOutput("Failed to initialize asherah: already initialized")
 		return ErrAsherahAlreadyInitialized
 	}
 
@@ -60,7 +60,7 @@ func Setup(options *Options) error {
 	)
 
 	if globalSessionFactory == nil {
-		output.StderrDebugOutputf("Failed to create session factory")
+		output.StderrDebugOutput("Failed to create session factory")
 		return ErrAsherahFailedInitialization
 	}
 
@@ -77,13 +77,13 @@ func Shutdown() {
 
 func Encrypt(partitionId string, data []byte) (*appencryption.DataRowRecord, error) {
 	if globalInitialized == 0 {
-		output.StderrDebugOutputf("Failed to encrypt data: asherah is not initialized")
+		output.StderrDebugOutput("Failed to encrypt data: asherah is not initialized")
 		return nil, ErrAsherahNotInitialized
 	}
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		output.StderrDebugOutputf("Failed to get session for partition %v: %v", partitionId, err)
+		output.StderrDebugOutputf("Failed to get session for partition %v: %v", partitionId, err.Error())
 		return nil, err
 	}
 	defer session.Close()
@@ -99,7 +99,7 @@ func Decrypt(partitionId string, drr *appencryption.DataRowRecord) ([]byte, erro
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		output.StderrDebugOutputf("Failed to get session for partition %v: %v", partitionId, err)
+		output.StderrDebugOutputf("Failed to get session for partition %v: %v", partitionId, err.Error())
 		return nil, err
 	}
 	defer session.Close()
@@ -114,7 +114,7 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		// TODO: support other databases
 		db, err := newMysql(opts.ConnectionString)
 		if err != nil {
-			output.StderrDebugOutputf("PANIC: Failed to connect to database: %v", err)
+			output.StderrDebugOutputf("PANIC: Failed to connect to database: %v", err.Error())
 			panic(err)
 		}
 
@@ -122,7 +122,7 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		if len(opts.ReplicaReadConsistency) > 0 {
 			err := setRdbmsReplicaReadConsistencyValue(opts.ReplicaReadConsistency)
 			if err != nil {
-				output.StderrDebugOutputf("PANIC: Failed to set replica read consistency: %v", err)
+				output.StderrDebugOutputf("PANIC: Failed to set replica read consistency: %v", err.Error())
 				panic(err)
 			}
 		}
@@ -153,11 +153,11 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 
 func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagementService {
 	if opts.KMS == "static" {
-		output.StderrDebugOutputf("*** WARNING WARNING WARNING USING STATIC MASTER KEY - THIS IS FOR DEBUG ONLY ***")
+		output.StderrDebugOutput("*** WARNING WARNING WARNING USING STATIC MASTER KEY - THIS IS FOR DEBUG ONLY ***")
 
 		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", aead.NewAES256GCM())
 		if err != nil {
-			output.StderrDebugOutputf("PANIC: Failed to create static master key: %v", err)
+			output.StderrDebugOutputf("PANIC: Failed to create static master key: %v", err.Error())
 			panic(err)
 		}
 
@@ -166,7 +166,7 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 
 	m, err := kms.NewAWS(crypto, opts.PreferredRegion, opts.RegionMap)
 	if err != nil {
-		output.StderrDebugOutputf("PANIC: Failed to create AWS KMS: %v", err)
+		output.StderrDebugOutputf("PANIC: Failed to create AWS KMS: %v", err.Error())
 		panic(err)
 	}
 
