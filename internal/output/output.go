@@ -12,7 +12,7 @@ func EnableVerboseOutput(flag bool) {
 	if flag {
 		VerboseOutput = StderrDebugOutput
 		VerboseOutputf = StderrDebugOutputf
-		VerboseOutput("Enabled debug output")
+		VerboseOutput("asherah-cobhan: Enabled debug output")
 	} else {
 		VerboseOutput = NullDebugOutput
 		VerboseOutputf = NullDebugOutputf
@@ -20,11 +20,11 @@ func EnableVerboseOutput(flag bool) {
 }
 
 func StderrDebugOutput(output interface{}) {
-	fmt.Fprintf(os.Stderr, "%#v\n", output)
+	fmt.Fprintf(os.Stderr, "asherah-cobhan: %#v\n", output)
 }
 
 func StderrDebugOutputf(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, format+"\n", args...)
+	fmt.Fprintf(os.Stderr, "asherah-cobhan:"+format+"\n", args...)
 }
 
 func NullDebugOutput(output interface{}) {
