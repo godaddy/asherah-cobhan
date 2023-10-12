@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
-	"github.com/godaddy/asherah-cobhan/internal/output"
+	"github.com/godaddy/asherah-cobhan/internal/log"
 	"github.com/godaddy/asherah/go/appencryption"
 	"github.com/godaddy/asherah/go/appencryption/pkg/crypto/aead"
 	"github.com/godaddy/asherah/go/appencryption/pkg/kms"
@@ -24,7 +24,7 @@ var ErrAsherahFailedInitialization = errors.New("asherah failed initialization")
 
 func Setup(options *Options) error {
 	if atomic.LoadInt32(&globalInitialized) == 1 {
-		output.StderrDebugOutput("Failed to initialize asherah: already initialized")
+		output.StderrDebugLog("Failed to initialize asherah: already initialized")
 		return ErrAsherahAlreadyInitialized
 	}
 
@@ -60,7 +60,7 @@ func Setup(options *Options) error {
 	)
 
 	if globalSessionFactory == nil {
-		output.StderrDebugOutput("Failed to create session factory")
+		output.StderrDebugLog("Failed to create session factory")
 		return ErrAsherahFailedInitialization
 	}
 
@@ -77,13 +77,13 @@ func Shutdown() {
 
 func Encrypt(partitionId string, data []byte) (*appencryption.DataRowRecord, error) {
 	if globalInitialized == 0 {
-		output.StderrDebugOutput("Failed to encrypt data: asherah is not initialized")
+		output.StderrDebugLog("Failed to encrypt data: asherah is not initialized")
 		return nil, ErrAsherahNotInitialized
 	}
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		output.StderrDebugOutputf("Failed to get session for partition %v: %v", partitionId, err.Error())
+		output.StderrDebugLogf("Failed to get session for partition %v: %v", partitionId, err.Error())
 		return nil, err
 	}
 	defer session.Close()
@@ -99,7 +99,7 @@ func Decrypt(partitionId string, drr *appencryption.DataRowRecord) ([]byte, erro
 
 	session, err := globalSessionFactory.GetSession(partitionId)
 	if err != nil {
-		output.StderrDebugOutputf("Failed to get session for partition %v: %v", partitionId, err.Error())
+		output.StderrDebugLogf("Failed to get session for partition %v: %v", partitionId, err.Error())
 		return nil, err
 	}
 	defer session.Close()
@@ -114,7 +114,7 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		// TODO: support other databases
 		db, err := newMysql(opts.ConnectionString)
 		if err != nil {
-			output.StderrDebugOutputf("PANIC: Failed to connect to database: %v", err.Error())
+			output.StderrDebugLogf("PANIC: Failed to connect to database: %v", err.Error())
 			panic(err)
 		}
 
@@ -122,7 +122,7 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		if len(opts.ReplicaReadConsistency) > 0 {
 			err := setRdbmsReplicaReadConsistencyValue(opts.ReplicaReadConsistency)
 			if err != nil {
-				output.StderrDebugOutputf("PANIC: Failed to set replica read consistency: %v", err.Error())
+				output.StderrDebugLogf("PANIC: Failed to set replica read consistency: %v", err.Error())
 				panic(err)
 			}
 		}
@@ -150,21 +150,21 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		// We don't warn if the user specifically asks for test-debug-memory
 		return persistence.NewMemoryMetastore()
 	case "memory":
-		output.StderrDebugOutput("*** WARNING WARNING WARNING USING MEMORY METASTORE - THIS IS FOR TEST/DEBUG ONLY ***")
+		output.StderrDebugLog("*** WARNING WARNING WARNING USING MEMORY METASTORE - THIS IS FOR TEST/DEBUG ONLY ***")
 		return persistence.NewMemoryMetastore()
 	default:
-		output.StderrDebugOutputf("PANIC: Unknown metastore type: %v", opts.Metastore)
+		output.StderrDebugLogf("PANIC: Unknown metastore type: %v", opts.Metastore)
 		panic("Unknown metastore type")
 	}
 }
 
 func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagementService {
 	if opts.KMS == "static" {
-		output.StderrDebugOutput("*** WARNING WARNING WARNING USING STATIC MASTER KEY - THIS IS FOR TEST/DEBUG ONLY ***")
+		output.StderrDebugLog("*** WARNING WARNING WARNING USING STATIC MASTER KEY - THIS IS FOR TEST/DEBUG ONLY ***")
 
 		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", aead.NewAES256GCM())
 		if err != nil {
-			output.StderrDebugOutputf("PANIC: Failed to create static master key: %v", err.Error())
+			output.StderrDebugLogf("PANIC: Failed to create static master key: %v", err.Error())
 			panic(err)
 		}
 
@@ -173,7 +173,7 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 		// We don't warn if the user specifically asks for test-debug-static
 		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", crypto)
 		if err != nil {
-			output.StderrDebugOutputf("PANIC: Failed to create static master key: %v", err.Error())
+			output.StderrDebugLogf("PANIC: Failed to create static master key: %v", err.Error())
 			panic(err)
 		}
 
@@ -182,7 +182,7 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 
 	m, err := kms.NewAWS(crypto, opts.PreferredRegion, opts.RegionMap)
 	if err != nil {
-		output.StderrDebugOutputf("PANIC: Failed to create AWS KMS: %v", err.Error())
+		output.StderrDebugLogf("PANIC: Failed to create AWS KMS: %v", err.Error())
 		panic(err)
 	}
 
