@@ -146,16 +146,32 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 			persistence.WithDynamoDBRegionSuffix(opts.EnableRegionSuffix),
 			persistence.WithTableName(opts.DynamoDBTableName),
 		)
-	default:
+	case "test-debug-memory":
+		// We don't warn if the user specifically asks for test-debug-memory
 		return persistence.NewMemoryMetastore()
+	case "memory":
+		output.StderrDebugOutput("*** WARNING WARNING WARNING USING MEMORY METASTORE - THIS IS FOR TEST/DEBUG ONLY ***")
+		return persistence.NewMemoryMetastore()
+	default:
+		output.StderrDebugOutputf("PANIC: Unknown metastore type: %v", opts.Metastore)
+		panic("Unknown metastore type")
 	}
 }
 
 func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagementService {
 	if opts.KMS == "static" {
-		output.StderrDebugOutput("*** WARNING WARNING WARNING USING STATIC MASTER KEY - THIS IS FOR DEBUG ONLY ***")
+		output.StderrDebugOutput("*** WARNING WARNING WARNING USING STATIC MASTER KEY - THIS IS FOR TEST/DEBUG ONLY ***")
 
 		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", aead.NewAES256GCM())
+		if err != nil {
+			output.StderrDebugOutputf("PANIC: Failed to create static master key: %v", err.Error())
+			panic(err)
+		}
+
+		return m
+	} else if opts.KMS == "test-debug-static" {
+		// We don't warn if the user specifically asks for test-debug-static
+		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", crypto)
 		if err != nil {
 			output.StderrDebugOutputf("PANIC: Failed to create static master key: %v", err.Error())
 			panic(err)
