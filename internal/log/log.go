@@ -5,30 +5,32 @@ import (
 	"os"
 )
 
-var VerboseLog func(interface{}) = nil
-var VerboseLogf func(format string, args ...interface{}) = nil
+var DebugLog func(interface{}) = nil
+var DebugLogf func(format string, args ...interface{}) = nil
+var ErrorLog func(interface{}) = stderrDebugLog
+var ErrorLogf func(format string, args ...interface{}) = stderrDebugLogf
 
 func EnableVerboseLog(flag bool) {
 	if flag {
-		VerboseLog = StderrDebugLog
-		VerboseLogf = StderrDebugLogf
-		VerboseLog("asherah-cobhan: Enabled debug log")
+		DebugLog = stderrDebugLog
+		DebugLogf = stderrDebugLogf
+		DebugLog("asherah-cobhan: Enabled debug log")
 	} else {
-		VerboseLog = NullDebugLog
-		VerboseLogf = NullDebugLogf
+		DebugLog = nullDebugLog
+		DebugLogf = nullDebugLogf
 	}
 }
 
-func StderrDebugLog(output interface{}) {
+func stderrDebugLog(output interface{}) {
 	fmt.Fprintf(os.Stderr, "asherah-cobhan: %#v\n", output)
 }
 
-func StderrDebugLogf(format string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, "asherah-cobhan:"+format+"\n", args...)
+func stderrDebugLogf(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "asherah-cobhan: "+format+"\n", args...)
 }
 
-func NullDebugLog(output interface{}) {
+func nullDebugLog(output interface{}) {
 }
 
-func NullDebugLogf(format string, args ...interface{}) {
+func nullDebugLogf(format string, args ...interface{}) {
 }
