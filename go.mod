@@ -8,6 +8,7 @@ require (
 	github.com/godaddy/asherah/go/appencryption v0.3.0
 	github.com/godaddy/asherah/go/securememory v0.1.4
 	github.com/godaddy/cobhan-go v0.4.2
+	github.com/lib/pq v1.10.9
 )
 
 require (

@@ -3,7 +3,8 @@ package asherah
 import (
 	"database/sql"
 
-	"github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 )
 
 const (
@@ -15,19 +16,12 @@ const (
 
 var (
 	dbconnection *sql.DB
-	dbdriver     = "mysql"
 )
 
-func newMysql(connStr string) (*sql.DB, error) {
+func newConnection(dbdriver string, connStr string) (*sql.DB, error) {
+	var err error
 	if dbconnection == nil {
-		dsn, err := mysql.ParseDSN(connStr)
-		if err != nil {
-			return nil, err
-		}
-
-		dsn.ParseTime = true
-
-		dbconnection, err = sql.Open(dbdriver, dsn.FormatDSN())
+		dbconnection, err = sql.Open(dbdriver, connStr)
 		if err != nil {
 			return nil, err
 		}

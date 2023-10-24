@@ -111,8 +111,13 @@ func Decrypt(partitionId string, drr *appencryption.DataRowRecord) ([]byte, erro
 func NewMetastore(opts *Options) appencryption.Metastore {
 	switch opts.Metastore {
 	case "rdbms":
-		// TODO: support other databases
-		db, err := newMysql(opts.ConnectionString)
+		var dbType string
+		if len(opts.SQLMetastoreDBType) > 1 {
+			dbType = opts.SQLMetastoreDBType
+		} else {
+			dbType = "mysql"
+		}
+		db, err := newConnection(dbType, opts.ConnectionString)
 		if err != nil {
 			log.ErrorLogf("PANIC: Failed to connect to database: %v", err.Error())
 			panic(err)
@@ -127,7 +132,7 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 			}
 		}
 
-		return persistence.NewSQLMetastore(db)
+		return persistence.NewSQLMetastore(db, persistence.WithSQLMetastoreDBType(persistence.SQLMetastoreDBType(dbType)))
 	case "dynamodb":
 		awsOpts := awssession.Options{
 			SharedConfigState: awssession.SharedConfigEnable,
