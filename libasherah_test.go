@@ -85,6 +85,68 @@ func TestSetupJsonAlternateConfiguration(t *testing.T) {
 	Shutdown()
 }
 
+func TestSetupJsonRdbmWithMysqlDefaultDbType(t *testing.T) {
+	config := &asherah.Options{}
+
+	config.KMS = "static"
+	config.ServiceName = "TestService"
+	config.ProductID = "TestProduct"
+	config.Metastore = "rdbms"
+	config.ConnectionString = "user@tcp(localhost:3306)/db"
+	config.EnableSessionCaching = true
+	config.Verbose = Verbose
+
+	buf := testAllocateJsonBuffer(t, config)
+
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
+	Shutdown()
+}
+
+func TestSetupJsonRdbmWithMysqlDbType(t *testing.T) {
+	config := &asherah.Options{}
+
+	config.KMS = "static"
+	config.ServiceName = "TestService"
+	config.ProductID = "TestProduct"
+	config.Metastore = "rdbms"
+	config.ConnectionString = "user@tcp(localhost:3306)/db"
+	config.SQLMetastoreDBType = "mysql"
+	config.EnableSessionCaching = true
+	config.Verbose = Verbose
+
+	buf := testAllocateJsonBuffer(t, config)
+
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
+	Shutdown()
+}
+
+func TestSetupJsonRdbmWithPostgresDbType(t *testing.T) {
+	config := &asherah.Options{}
+
+	config.KMS = "static"
+	config.ServiceName = "TestService"
+	config.ProductID = "TestProduct"
+	config.Metastore = "rdbms"
+	config.ConnectionString = "postgres://user@localhost:5432/db"
+	config.SQLMetastoreDBType = "postgres"
+	config.EnableSessionCaching = true
+	config.Verbose = Verbose
+
+	buf := testAllocateJsonBuffer(t, config)
+
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
+	Shutdown()
+}
+
 func TestSetupJsonTwice(t *testing.T) {
 	config := &asherah.Options{}
 

@@ -13,6 +13,7 @@ type Options struct {
 	Metastore              string        `long:"metastore" choice:"rdbms" choice:"dynamodb" choice:"memory" required:"yes" description:"Determines the type of metastore to use for persisting keys" env:"ASHERAH_METASTORE_MODE"`
 	ConnectionString       string        `long:"conn" default-mask:"-" description:"The database connection string (required if --metastore=rdbms)" env:"ASHERAH_CONNECTION_STRING"`
 	ReplicaReadConsistency string        `long:"replica-read-consistency" choice:"eventual" choice:"global" choice:"session" description:"Required for Aurora sessions using write forwarding" env:"ASHERAH_REPLICA_READ_CONSISTENCY"`
+	SQLMetastoreDBType     string        `long:"sql-metastore-db-type" default:"mysql" choice:"mysql" choice:"postgres" choice:"oracle" description:"Determines the specific type of database/sql driver to use" env:"ASHERAH_SQL_METASTORE_DB_TYPE"`
 	DynamoDBEndpoint       string        `long:"dynamodb-endpoint" description:"An optional endpoint URL (hostname only or fully qualified URI) (only supported by --metastore=dynamodb)" env:"ASHERAH_DYNAMODB_ENDPOINT"`
 	DynamoDBRegion         string        `long:"dynamodb-region" description:"The AWS region for DynamoDB requests (defaults to globally configured region) (only supported by --metastore=dynamodb)" env:"ASHERAH_DYNAMODB_REGION"`
 	DynamoDBTableName      string        `long:"dynamodb-table-name" description:"The table name for DynamoDB (only supported by --metastore=dynamodb)" env:"ASHERAH_DYNAMODB_TABLE_NAME"`
