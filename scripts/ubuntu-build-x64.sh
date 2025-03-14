@@ -8,5 +8,5 @@ LD_RUN_PATH=\$ORIGIN CGO_ENABLED=1 GOOS=linux GODEBUG=cgocheck=0 GOARCH=amd64 go
 
 go test -v -failfast -coverprofile cover.out
 
-#find output/ -print0 | xargs -0 file
+find output/ -print0 | xargs -0 file
 
