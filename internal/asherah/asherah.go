@@ -11,6 +11,7 @@ import (
 	"github.com/godaddy/asherah/go/appencryption"
 	"github.com/godaddy/asherah/go/appencryption/pkg/crypto/aead"
 	"github.com/godaddy/asherah/go/appencryption/pkg/kms"
+	asherahLog "github.com/godaddy/asherah/go/appencryption/pkg/log"
 	"github.com/godaddy/asherah/go/appencryption/pkg/persistence"
 	"github.com/godaddy/asherah/go/securememory/memguard"
 )
@@ -22,10 +23,20 @@ var ErrAsherahAlreadyInitialized = errors.New("asherah already initialized")
 var ErrAsherahNotInitialized = errors.New("asherah not initialized")
 var ErrAsherahFailedInitialization = errors.New("asherah failed initialization")
 
+type logFunc func(format string, v ...interface{})
+
+func (f logFunc) Debugf(format string, v ...interface{}) {
+	f(format, v...)
+}
+
 func Setup(options *Options) error {
 	if atomic.LoadInt32(&globalInitialized) == 1 {
 		log.ErrorLog("Failed to initialize asherah: already initialized")
 		return ErrAsherahAlreadyInitialized
+	}
+
+	if options.Verbose && log.DebugLogf != nil {
+		asherahLog.SetLogger(logFunc(log.DebugLogf))
 	}
 
 	crypto := aead.NewAES256GCM()

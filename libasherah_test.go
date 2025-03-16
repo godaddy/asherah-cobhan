@@ -10,7 +10,7 @@ import (
 	"github.com/godaddy/cobhan-go"
 )
 
-var Verbose = true
+var Verbose = false
 
 func setupAsherahForTesting(t *testing.T) {
 	config := &asherah.Options{}
