@@ -15,10 +15,9 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/awnumar/memcall v0.4.0 // indirect
 	github.com/awnumar/memguard v0.22.5 // indirect
-	github.com/goburrow/cache v0.1.4 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 )
