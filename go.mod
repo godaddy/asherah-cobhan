@@ -1,6 +1,7 @@
 module github.com/godaddy/asherah-cobhan
 
 go 1.21
+toolchain go1.24.1
 
 require (
 	github.com/aws/aws-sdk-go v1.55.5
@@ -18,6 +19,6 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 )
