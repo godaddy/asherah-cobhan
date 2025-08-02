@@ -3,6 +3,7 @@ package asherah
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync/atomic"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -130,16 +131,16 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		}
 		db, err := newConnection(dbType, opts.ConnectionString)
 		if err != nil {
-			log.ErrorLogf("PANIC: Failed to connect to database: %v", err.Error())
-			panic(err)
+			log.ErrorLogf("PANIC: Failed to connect to %s database with connection string: %v", dbType, err.Error())
+			panic(fmt.Errorf("failed to connect to %s database: %w", dbType, err))
 		}
 
 		// set optional replica read consistency
 		if len(opts.ReplicaReadConsistency) > 0 {
 			err := setRdbmsReplicaReadConsistencyValue(opts.ReplicaReadConsistency)
 			if err != nil {
-				log.ErrorLogf("PANIC: Failed to set replica read consistency: %v", err.Error())
-				panic(err)
+				log.ErrorLogf("PANIC: Failed to set replica read consistency to '%s': %v", opts.ReplicaReadConsistency, err.Error())
+				panic(fmt.Errorf("failed to set replica read consistency to '%s': %w", opts.ReplicaReadConsistency, err))
 			}
 		}
 
@@ -169,8 +170,8 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		log.ErrorLog("*** WARNING WARNING WARNING USING MEMORY METASTORE - THIS IS FOR TEST/DEBUG ONLY ***")
 		return persistence.NewMemoryMetastore()
 	default:
-		log.ErrorLogf("PANIC: Unknown metastore type: %v", opts.Metastore)
-		panic("Unknown metastore type")
+		log.ErrorLogf("PANIC: Unknown metastore type: %v (valid options: rdbms, dynamodb, memory)", opts.Metastore)
+		panic(fmt.Errorf("unknown metastore type '%s' (valid options: rdbms, dynamodb, memory)", opts.Metastore))
 	}
 }
 
@@ -180,8 +181,8 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 
 		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", aead.NewAES256GCM())
 		if err != nil {
-			log.ErrorLogf("PANIC: Failed to create static master key: %v", err.Error())
-			panic(err)
+			log.ErrorLogf("PANIC: Failed to create static master key for KMS type 'static': %v", err.Error())
+			panic(fmt.Errorf("failed to create static master key for KMS type 'static': %w", err))
 		}
 
 		return m
@@ -189,8 +190,8 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 		// We don't warn if the user specifically asks for test-debug-static
 		m, err := kms.NewStatic("thisIsAStaticMasterKeyForTesting", crypto)
 		if err != nil {
-			log.ErrorLogf("PANIC: Failed to create static master key: %v", err.Error())
-			panic(err)
+			log.ErrorLogf("PANIC: Failed to create static master key for KMS type 'test-debug-static': %v", err.Error())
+			panic(fmt.Errorf("failed to create static master key for KMS type 'test-debug-static': %w", err))
 		}
 
 		return m
@@ -198,8 +199,8 @@ func NewKMS(opts *Options, crypto appencryption.AEAD) appencryption.KeyManagemen
 
 	m, err := kms.NewAWS(crypto, opts.PreferredRegion, opts.RegionMap)
 	if err != nil {
-		log.ErrorLogf("PANIC: Failed to create AWS KMS: %v", err.Error())
-		panic(err)
+		log.ErrorLogf("PANIC: Failed to create AWS KMS with preferred region '%s': %v", opts.PreferredRegion, err.Error())
+		panic(fmt.Errorf("failed to create AWS KMS with preferred region '%s': %w", opts.PreferredRegion, err))
 	}
 
 	return m
