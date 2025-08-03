@@ -12,7 +12,7 @@ jobs:
       image: golang:bookworm
       options: --ulimit core=-1 --ulimit memlock=-1:-1
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     # Fix "fatal: detected dubious ownership in repository"
     - name: Change owner of container working directory
       run: chown root:root .
@@ -36,7 +36,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: 1.24
+        go-version: '1.24.5'
         check-latest: 'true'
     - name: Build for MacOS
       run: scripts/macos-build.sh
