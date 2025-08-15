@@ -25,7 +25,7 @@ jobs:
     - name: Publish Linux sha256sums
       run: scripts/generate-sha256.sh > output/SHA256SUMS
     - name: Upload Artifacts
-      run: scripts/upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-x64.a output/libasherah-x64-archive.h output/libasherah-arm64.h output/libasherah-arm64.so output/libasherah-arm64.a output/libasherah-arm64-archive.h output/SHA256SUMS
+      run: scripts/upload-artifacts.sh output/libasherah-x64.h output/libasherah-x64.so output/libasherah-x64.a output/libasherah-x64-archive.h output/libasherah-arm64.h output/libasherah-arm64.so output/libasherah-arm64.a output/libasherah-arm64-archive.h output/go-warmup-linux-x64.so output/go-warmup-linux-arm64.so output/SHA256SUMS
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build-macos:
@@ -43,6 +43,6 @@ jobs:
     - name: Publish MacOS sha256sums
       run: scripts/generate-sha256.sh > output/SHA256SUMS-darwin
     - name: Upload Artifacts
-      run: scripts/upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib output/libasherah-darwin-arm64.a output/libasherah-darwin-x64.a output/libasherah-darwin-x64-archive.h output/libasherah-darwin-arm64-archive.h output/SHA256SUMS-darwin
+      run: scripts/upload-artifacts.sh output/libasherah-darwin-x64.h output/libasherah-x64.dylib output/libasherah-darwin-arm64.h output/libasherah-arm64.dylib output/libasherah-darwin-arm64.a output/libasherah-darwin-x64.a output/libasherah-darwin-x64-archive.h output/libasherah-darwin-arm64-archive.h output/go-warmup-darwin-x64.dylib output/go-warmup-darwin-arm64.dylib output/SHA256SUMS-darwin
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
