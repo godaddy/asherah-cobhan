@@ -19,5 +19,13 @@ mv output/libasherah-x64.h output/libasherah-darwin-x64.h
 
 go test -v -failfast -coverprofile cover.out
 
+# Build Go warmup libraries for JavaScript runtime compatibility
+echo "Building Go warmup libraries..."
+CGO_ENABLED=1 GOOS=darwin GOARCH=arm64 go build -buildmode=c-shared -ldflags='-s -w' -o output/go-warmup-darwin-arm64.dylib -tags="" go_warmup.go
+rm -f output/go_warmup.h  # Remove unnecessary header file
+
+CGO_ENABLED=1 GOOS=darwin GOARCH=amd64 go build -buildmode=c-shared -ldflags='-s -w' -o output/go-warmup-darwin-x64.dylib -tags="" go_warmup.go
+rm -f output/go_warmup.h  # Remove unnecessary header file
+
 find output/ -print0 | xargs -0 file
 
