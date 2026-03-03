@@ -31,7 +31,7 @@ func (f logFunc) Debugf(format string, v ...interface{}) {
 }
 
 func Setup(options *Options) error {
-	if atomic.LoadInt32(&globalInitialized) == 1 {
+	if !atomic.CompareAndSwapInt32(&globalInitialized, 0, 1) {
 		log.ErrorLog("Failed to initialize asherah: already initialized")
 		return ErrAsherahAlreadyInitialized
 	}
@@ -73,10 +73,10 @@ func Setup(options *Options) error {
 
 	if globalSessionFactory == nil {
 		log.ErrorLog("Failed to create session factory")
+		atomic.StoreInt32(&globalInitialized, 0)
 		return ErrAsherahFailedInitialization
 	}
 
-	atomic.StoreInt32(&globalInitialized, 1)
 	return nil
 }
 
@@ -84,6 +84,7 @@ func Shutdown() {
 	if atomic.CompareAndSwapInt32(&globalInitialized, 1, 0) {
 		globalSessionFactory.Close()
 		globalSessionFactory = nil
+		closeConnection()
 	}
 }
 
@@ -108,6 +109,7 @@ func Encrypt(partitionId string, data []byte) (*appencryption.DataRowRecord, err
 func Decrypt(partitionId string, drr *appencryption.DataRowRecord) ([]byte, error) {
 	// Atomic read to prevent race with Shutdown()
 	if atomic.LoadInt32(&globalInitialized) == 0 {
+		log.ErrorLog("Failed to decrypt data: asherah is not initialized")
 		return nil, ErrAsherahNotInitialized
 	}
 
