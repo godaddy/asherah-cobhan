@@ -87,7 +87,8 @@ func Shutdown() {
 }
 
 func Encrypt(partitionId string, data []byte) (*appencryption.DataRowRecord, error) {
-	if globalInitialized == 0 {
+	// Atomic read to prevent race with Shutdown()
+	if atomic.LoadInt32(&globalInitialized) == 0 {
 		log.ErrorLog("Failed to encrypt data: asherah is not initialized")
 		return nil, ErrAsherahNotInitialized
 	}
@@ -104,7 +105,8 @@ func Encrypt(partitionId string, data []byte) (*appencryption.DataRowRecord, err
 }
 
 func Decrypt(partitionId string, drr *appencryption.DataRowRecord) ([]byte, error) {
-	if globalInitialized == 0 {
+	// Atomic read to prevent race with Shutdown()
+	if atomic.LoadInt32(&globalInitialized) == 0 {
 		return nil, ErrAsherahNotInitialized
 	}
 
