@@ -22,6 +22,13 @@ var (
 	dbconnection *sql.DB
 )
 
+func closeConnection() {
+	if dbconnection != nil {
+		dbconnection.Close()
+		dbconnection = nil
+	}
+}
+
 func newConnection(dbdriver string, connStr string) (*sql.DB, error) {
 	var err error
 	if dbconnection == nil {

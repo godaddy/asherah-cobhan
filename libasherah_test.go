@@ -308,7 +308,7 @@ func TestEncryptDecryptRoundTripWithDefensiveCopy(t *testing.T) {
 	}
 	defer Shutdown()
 
-	if !DisableZeroCopy {
+	if !disableZeroCopy.Load() {
 		t.Error("DisableZeroCopy was not set by SetupJson")
 	}
 
