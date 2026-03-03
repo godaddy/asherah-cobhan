@@ -19,6 +19,7 @@ import (
 )
 
 var EstimatedIntermediateKeyOverhead = 0
+var DisableZeroCopy = false
 
 func main() {
 }
@@ -92,6 +93,7 @@ func SetupJson(configJson unsafe.Pointer) int32 {
 	log.DebugLog("Successfully deserialized config JSON")
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
+	DisableZeroCopy = options.DisableZeroCopy
 
 	err := asherah.Setup(options)
 	if err == asherah.ErrAsherahAlreadyInitialized {
@@ -302,6 +304,12 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 	if result != cobhan.ERR_NONE {
 		errorMessage := fmt.Sprintf("encryptData failed: Failed to convert cobhan buffer to bytes %v", cobhan.CobhanErrorToString(result))
 		return nil, result, errors.New(errorMessage)
+	}
+
+	if DisableZeroCopy {
+		dataCopy := make([]byte, len(data))
+		copy(dataCopy, data)
+		data = dataCopy
 	}
 
 	drr, err := asherah.Encrypt(partitionId, data)

@@ -282,6 +282,90 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 	}
 }
 
+func TestEncryptDecryptRoundTripWithDefensiveCopy(t *testing.T) {
+	config := &asherah.Options{}
+
+	config.KMS = "static"
+	config.ServiceName = "TestService"
+	config.ProductID = "TestProduct"
+	config.Metastore = "memory"
+	config.EnableSessionCaching = true
+	config.SessionCacheDuration = 1000
+	config.SessionCacheMaxSize = 2
+	config.ExpireAfter = 1000
+	config.CheckInterval = 1000
+	config.Verbose = Verbose
+	config.DisableZeroCopy = true
+	config.RegionMap = asherah.RegionMap{}
+	config.RegionMap["region1"] = "arn1"
+	config.RegionMap["region2"] = "arn2"
+
+	buf := testAllocateJsonBuffer(t, config)
+
+	result := SetupJson(cobhan.Ptr(&buf))
+	if result != cobhan.ERR_NONE {
+		t.Errorf("SetupJson returned %v", result)
+	}
+	defer Shutdown()
+
+	if !DisableZeroCopy {
+		t.Error("DisableZeroCopy was not set by SetupJson")
+	}
+
+	input := "InputData"
+	partitionId := testAllocateStringBuffer(t, "Partition")
+	data := testAllocateStringBuffer(t, input)
+	encryptedData := cobhan.AllocateBuffer(256)
+	encryptedKey := cobhan.AllocateBuffer(256)
+	createdBuf := cobhan.AllocateBuffer(8)
+	parentKeyId := cobhan.AllocateBuffer(256)
+	parentKeyCreatedBuf := cobhan.AllocateBuffer(8)
+
+	result = Encrypt(cobhan.Ptr(&partitionId),
+		cobhan.Ptr(&data),
+		cobhan.Ptr(&encryptedData),
+		cobhan.Ptr(&encryptedKey),
+		cobhan.Ptr(&createdBuf),
+		cobhan.Ptr(&parentKeyId),
+		cobhan.Ptr(&parentKeyCreatedBuf),
+	)
+	if result != cobhan.ERR_NONE {
+		t.Errorf("Encrypt returned %v", result)
+	}
+
+	decryptedData := cobhan.AllocateBuffer(256)
+
+	created, result := cobhan.BufferToInt64Safe(&createdBuf)
+	if result != cobhan.ERR_NONE {
+		t.Errorf("BufferToInt64Safe returned %v", result)
+	}
+
+	parentKeyCreated, result := cobhan.BufferToInt64Safe(&parentKeyCreatedBuf)
+	if result != cobhan.ERR_NONE {
+		t.Errorf("BufferToInt64Safe returned %v", result)
+	}
+
+	result = Decrypt(cobhan.Ptr(&partitionId),
+		cobhan.Ptr(&encryptedData),
+		cobhan.Ptr(&encryptedKey),
+		created,
+		cobhan.Ptr(&parentKeyId),
+		parentKeyCreated,
+		cobhan.Ptr(&decryptedData),
+	)
+	if result != cobhan.ERR_NONE {
+		t.Errorf("Decrypt returned %v", result)
+	}
+
+	output, result := cobhan.BufferToStringSafe(&decryptedData)
+	if result != cobhan.ERR_NONE {
+		t.Errorf("BufferToStringSafe returned %v", result)
+	}
+	if output != input {
+		t.Errorf("Expected %v Actual %v", input, output)
+	}
+}
+
 func TestEncryptWithoutInit(t *testing.T) {
 	partitionId := testAllocateStringBuffer(t, "Partition")
 	data := testAllocateStringBuffer(t, "InputData")
