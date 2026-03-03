@@ -7,7 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	awssession "github.com/aws/aws-sdk-go/aws/session"
-	log "github.com/godaddy/asherah-cobhan/internal/log"
+	"github.com/godaddy/asherah-cobhan/internal/log"
 	"github.com/godaddy/asherah/go/appencryption"
 	"github.com/godaddy/asherah/go/appencryption/pkg/crypto/aead"
 	"github.com/godaddy/asherah/go/appencryption/pkg/kms"

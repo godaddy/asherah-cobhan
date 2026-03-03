@@ -14,7 +14,7 @@ import (
 	"unsafe"
 
 	"github.com/godaddy/asherah-cobhan/internal/asherah"
-	log "github.com/godaddy/asherah-cobhan/internal/log"
+	"github.com/godaddy/asherah-cobhan/internal/log"
 	"github.com/godaddy/asherah/go/appencryption"
 )
 
