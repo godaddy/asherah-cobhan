@@ -24,6 +24,7 @@ type Options struct {
 	PreferredRegion        string        `long:"preferred-region" description:"The preferred AWS region (required if --kms=aws)" env:"ASHERAH_PREFERRED_REGION"`
 	EnableRegionSuffix     bool          `long:"enable-region-suffix" description:"Configure the metastore to use regional suffixes (only supported by --metastore=dynamodb)" env:"ASHERAH_ENABLE_REGION_SUFFIX"`
 	EnableSessionCaching   bool          `long:"enable-session-caching" description:"Enable shared session caching" env:"ASHERAH_ENABLE_SESSION_CACHING"`
+	DisableZeroCopy    bool          `long:"disable-zero-copy" description:"Disable zero-copy FFI input buffers to prevent use-after-free from caller runtime" env:"ASHERAH_DISABLE_ZERO_COPY"`
 	Verbose                bool          `short:"v" long:"verbose" description:"Enable verbose logging output" env:"ASHERAH_VERBOSE"`
 }
 
