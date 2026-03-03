@@ -133,7 +133,7 @@ func NewMetastore(opts *Options) appencryption.Metastore {
 		}
 		db, err := newConnection(dbType, opts.ConnectionString)
 		if err != nil {
-			log.ErrorLogf("PANIC: Failed to connect to %s database with connection string: %v", dbType, err.Error())
+			log.ErrorLogf("PANIC: Failed to connect to %s database (connection: %s): %v", dbType, redactConnectionString(opts.ConnectionString), err.Error())
 			panic(fmt.Errorf("failed to connect to %s database: %w", dbType, err))
 		}
 
