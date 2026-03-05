@@ -10,4 +10,3 @@ const ERR_PANIC = -106
 
 const EstimatedEncryptionOverhead = 48
 const EstimatedEnvelopeOverhead = 185
-const Base64Overhead = 1.34

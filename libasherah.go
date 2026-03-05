@@ -118,8 +118,8 @@ func SetupJson(configJson unsafe.Pointer) (result int32) {
 
 //export EstimateBuffer
 func EstimateBuffer(dataLen int32, partitionLen int32) int32 {
-	estimatedDataLen := float64(dataLen+EstimatedEncryptionOverhead) * Base64Overhead
-	result := int32(cobhan.BUFFER_HEADER_SIZE + EstimatedEnvelopeOverhead + EstimatedIntermediateKeyOverhead + int(partitionLen) + int(estimatedDataLen))
+	estimatedDataLen := ((int(dataLen) + EstimatedEncryptionOverhead + 2) / 3) * 4
+	result := int32(cobhan.BUFFER_HEADER_SIZE + EstimatedEnvelopeOverhead + EstimatedIntermediateKeyOverhead + int(partitionLen) + estimatedDataLen)
 	return result
 }
 
