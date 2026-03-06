@@ -25,6 +25,7 @@ type Options struct {
 	EnableRegionSuffix     bool          `long:"enable-region-suffix" description:"Configure the metastore to use regional suffixes (only supported by --metastore=dynamodb)" env:"ASHERAH_ENABLE_REGION_SUFFIX"`
 	EnableSessionCaching   bool          `long:"enable-session-caching" description:"Enable shared session caching" env:"ASHERAH_ENABLE_SESSION_CACHING"`
 	DisableZeroCopy    bool          `long:"disable-zero-copy" description:"Disable zero-copy FFI input buffers to prevent use-after-free from caller runtime" env:"ASHERAH_DISABLE_ZERO_COPY"`
+	NullDataCheck      bool          `long:"null-data-check" description:"Log an error if input data is all null before or after encryption" env:"ASHERAH_NULL_DATA_CHECK"`
 	Verbose                bool          `short:"v" long:"verbose" description:"Enable verbose logging output" env:"ASHERAH_VERBOSE"`
 }
 
