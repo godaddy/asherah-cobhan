@@ -20,7 +20,6 @@ import (
 )
 
 var EstimatedIntermediateKeyOverhead = 0
-var disableZeroCopy atomic.Bool
 var nullDataCheck atomic.Bool
 
 func main() {
@@ -98,7 +97,7 @@ func SetupJson(configJson unsafe.Pointer) (result int32) {
 	log.DebugLog("Successfully deserialized config JSON")
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
-	disableZeroCopy.Store(options.DisableZeroCopy)
+	cobhan.CopyBuffers(options.DisableZeroCopy)
 	nullDataCheck.Store(options.NullDataCheck)
 
 	err := asherah.Setup(options)
@@ -195,6 +194,12 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		}
 	}()
 
+	inputAlreadyNull := false
+	if nullDataCheck.Load() && cobhan.IsBufferAllNulls(dataPtr) {
+		log.ErrorLogf("Encrypt: input data buffer is all null before encryption (len=%d)", cobhan.BufferLength(dataPtr))
+		inputAlreadyNull = true
+	}
+
 	var drr *appencryption.DataRowRecord
 	var err error
 	drr, result, err = encryptData(partitionIdPtr, dataPtr)
@@ -202,6 +207,10 @@ func Encrypt(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, outputEncryp
 		log.ErrorLogf("Failed to encrypt data %v", cobhan.CobhanErrorToString(result))
 		log.ErrorLogf("Encrypt failed: encryptData returned %v", err)
 		return result
+	}
+
+	if !inputAlreadyNull && nullDataCheck.Load() && cobhan.IsBufferAllNulls(dataPtr) {
+		log.ErrorLogf("Encrypt: input data buffer was nulled during encryption (len=%d)", cobhan.BufferLength(dataPtr))
 	}
 
 	result = cobhan.BytesToBuffer(drr.Data, outputEncryptedDataPtr)
@@ -247,6 +256,12 @@ func EncryptToJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPt
 		}
 	}()
 
+	inputAlreadyNull := false
+	if nullDataCheck.Load() && cobhan.IsBufferAllNulls(dataPtr) {
+		log.ErrorLogf("EncryptToJson: input data buffer is all null before encryption (len=%d)", cobhan.BufferLength(dataPtr))
+		inputAlreadyNull = true
+	}
+
 	var drr *appencryption.DataRowRecord
 	var err error
 	drr, result, err = encryptData(partitionIdPtr, dataPtr)
@@ -254,6 +269,10 @@ func EncryptToJson(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer, jsonPt
 		log.ErrorLogf("Failed to encrypt data %v", cobhan.CobhanErrorToString(result))
 		log.ErrorLogf("EncryptToJson failed: encryptData returned %v", err)
 		return result
+	}
+
+	if !inputAlreadyNull && nullDataCheck.Load() && cobhan.IsBufferAllNulls(dataPtr) {
+		log.ErrorLogf("EncryptToJson: input data buffer was nulled during encryption (len=%d)", cobhan.BufferLength(dataPtr))
 	}
 
 	result = cobhan.JsonToBuffer(drr, jsonPtr)
@@ -323,21 +342,7 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 		return nil, result, errors.New(errorMessage)
 	}
 
-	if disableZeroCopy.Load() {
-		dataCopy := make([]byte, len(data))
-		copy(dataCopy, data)
-		data = dataCopy
-	}
-
-	if nullDataCheck.Load() && isBufferAllNull(data) {
-		log.ErrorLogf("encryptData: input data buffer is all null before encryption (len=%d)", len(data))
-	}
-
 	drr, err := asherah.Encrypt(partitionId, data)
-
-	if nullDataCheck.Load() && isBufferAllNull(data) {
-		log.ErrorLogf("encryptData: input data buffer was nulled during encryption (len=%d)", len(data))
-	}
 
 	if err != nil {
 		if err == asherah.ErrAsherahNotInitialized {
@@ -347,19 +352,6 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 	}
 
 	return drr, cobhan.ERR_NONE, nil
-}
-
-func isBufferAllNull(data []byte) bool {
-	checkLen := 64
-	if len(data) < checkLen {
-		checkLen = len(data)
-	}
-	for i := 0; i < checkLen; i++ {
-		if data[i] != 0 {
-			return false
-		}
-	}
-	return true
 }
 
 func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord) ([]byte, int32, error) {
