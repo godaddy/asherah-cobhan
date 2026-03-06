@@ -21,6 +21,7 @@ import (
 
 var EstimatedIntermediateKeyOverhead = 0
 var disableZeroCopy atomic.Bool
+var nullDataCheck atomic.Bool
 
 func main() {
 }
@@ -98,6 +99,7 @@ func SetupJson(configJson unsafe.Pointer) (result int32) {
 
 	EstimatedIntermediateKeyOverhead = len(options.ProductID) + len(options.ServiceName)
 	disableZeroCopy.Store(options.DisableZeroCopy)
+	nullDataCheck.Store(options.NullDataCheck)
 
 	err := asherah.Setup(options)
 	if err == asherah.ErrAsherahAlreadyInitialized {
@@ -327,7 +329,16 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 		data = dataCopy
 	}
 
+	if nullDataCheck.Load() && isBufferAllNull(data) {
+		log.ErrorLogf("encryptData: input data buffer is all null before encryption (len=%d)", len(data))
+	}
+
 	drr, err := asherah.Encrypt(partitionId, data)
+
+	if nullDataCheck.Load() && isBufferAllNull(data) {
+		log.ErrorLogf("encryptData: input data buffer was nulled during encryption (len=%d)", len(data))
+	}
+
 	if err != nil {
 		if err == asherah.ErrAsherahNotInitialized {
 			return nil, ERR_NOT_INITIALIZED, err
@@ -336,6 +347,19 @@ func encryptData(partitionIdPtr unsafe.Pointer, dataPtr unsafe.Pointer) (*appenc
 	}
 
 	return drr, cobhan.ERR_NONE, nil
+}
+
+func isBufferAllNull(data []byte) bool {
+	checkLen := 64
+	if len(data) < checkLen {
+		checkLen = len(data)
+	}
+	for i := 0; i < checkLen; i++ {
+		if data[i] != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func decryptData(partitionIdPtr unsafe.Pointer, drr *appencryption.DataRowRecord) ([]byte, int32, error) {
