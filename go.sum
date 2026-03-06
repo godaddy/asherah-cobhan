@@ -15,8 +15,8 @@ github.com/godaddy/asherah/go/appencryption v0.9.0 h1:8eKJ2hSGEzY3105pHCZV8wCL32
 github.com/godaddy/asherah/go/appencryption v0.9.0/go.mod h1:x21eDOL6i8Ea9ynNIungAujq5TFTXiNs1Y3xmvL3xB4=
 github.com/godaddy/asherah/go/securememory v0.1.7 h1:U8baVJeOxuBjCzu7QnQkvcHbA9FfiZ1F1+WJSUca1/U=
 github.com/godaddy/asherah/go/securememory v0.1.7/go.mod h1:3AF+7BGAWflig7rp0zdkdi+hfi1616UFtOxBdWiMP9g=
-github.com/godaddy/cobhan-go v0.4.3 h1:pIkkJ1fr8AA56WR9pUy6Pu2KOVCzgllwS/BX4ucqFJY=
-github.com/godaddy/cobhan-go v0.4.3/go.mod h1:07aRS3E5apQ9gmpSn2e/BmniBDk8AU67QtmQda8uoNI=
+github.com/godaddy/cobhan-go v0.5.0 h1:14fkjTq+j8RFlCLiDOqvoY6l/wCuxL9c0Akd62yNYcM=
+github.com/godaddy/cobhan-go v0.5.0/go.mod h1:07aRS3E5apQ9gmpSn2e/BmniBDk8AU67QtmQda8uoNI=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
